@@ -5,6 +5,8 @@ import SignupFormPage from "./components/SignupFormPage";
 import * as sessionActions from "./store/session";
 import Navigation from "./components/Navigation";
 
+import PixiCanvas from './components/PixiCanvas';
+
 function App() {
     const dispatch = useDispatch();
     const [isLoaded, setIsLoaded] = useState(false);
@@ -24,6 +26,8 @@ function App() {
                     </Route>
                 </Switch>
             )}
+            <PixiCanvas />
+            <PixiCanvas />
         </>
     );
 }
