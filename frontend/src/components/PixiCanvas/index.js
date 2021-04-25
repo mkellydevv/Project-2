@@ -13,12 +13,13 @@ const PixiCanvas = () => {
         let arr = [];
         let currArr = [];
         let savedArr = [];
+        let redraw = false;
 
         const mouseDownHandler = e => {
             lastPos = [e.offsetX, e.offsetY];
             mouseDown = true;
             line = new PIXI.Graphics();
-            line.lineStyle(2, '0x00FF00');
+            line.lineStyle(3, '0x00FF00');
             app.stage.addChild(line);
 
             currArr.push(lastPos);
@@ -36,44 +37,39 @@ const PixiCanvas = () => {
         const mouseUpHandler = e => {
             if (!mouseDown) return
             mouseDown = false;
-            console.log(currArr)
             arr.push(currArr)
             currArr = [];
+            line = null;
         };
 
         const update = () => {
+            if (redraw && savedArr.length > 0) {
+                if (line === null) {
+                    line = new PIXI.Graphics();
+                    line.lineStyle(3, '0x00FF00');
+                    app.stage.addChild(line);
+                }
 
-        }
+                line.moveTo(...savedArr[0][0]);
+                line.lineTo(...savedArr[0][1]);
 
-        const redrawCanvas = async (savedArr) => {
-            let line = new PIXI.Graphics();
-            line.lineStyle(2, '0x00FF00');
-            app.stage.addChild(line);
-
-            function delay() {
-
-            }
-
-            for (let i = 0; i < savedArr.length; i++) {
-                let lastPoint = savedArr[i][0];
-                for (let j = 1; j < savedArr[i].length; j++) {
-                    (function (n) {
-                        setTimeout(() => {
-                            console.log(savedArr)
-                            line.moveTo(...lastPoint);
-                            line.lineTo(...n);
-                            lastPoint = n;
-                        }, 1000 / 15);
-                    })(savedArr[i][j]);
+                savedArr[0].shift();
+                if (savedArr[0].length === 1)
+                    savedArr.shift();
+                if (savedArr.length === 0) {
+                    redraw = false;
+                    line = null;
                 }
             }
+        }
 
-            arr = savedArr;
+
+        const redrawCanvas = () => {
+            redraw = true;
         }
 
         const clearCanvas = () => {
-            savedArr = arr;
-            arr = [];
+            savedArr = arr.map(subArr => subArr.map(tuple => [...tuple]));
             app.stage.removeChildren();
         }
 
@@ -95,9 +91,11 @@ const PixiCanvas = () => {
         ref.current.appendChild(clearBtn);
 
         const redrawBtn = document.createElement('button');
-        redrawBtn.addEventListener('click', e => redrawCanvas(savedArr));
+        redrawBtn.addEventListener('click', e => redrawCanvas());
         redrawBtn.innerText = 'Redraw'
         ref.current.appendChild(redrawBtn);
+
+        setInterval(update, 1000/60);
 
         return () => {
             app.destroy(true, true);
