@@ -8,6 +8,7 @@ const PixiCanvas = () => {
 
     useEffect(() => {
         let lastPos;
+        let currPos;
         let line = null;
         let arr = [];
         let currArr = [];
@@ -15,9 +16,9 @@ const PixiCanvas = () => {
         let doDraw = false;
         let i = 0;
         let j = 0;
-        let linesPerUpdate = 5;
+        let linesPerUpdate = 10;
 
-        const multiCall = (cb, amount) =>{
+        const multiCall = (cb, amount) => {
             for (let i = 0; i < amount; i++)
                 cb();
         }
@@ -28,17 +29,35 @@ const PixiCanvas = () => {
 
             if (elapsed > frameRate) {
                 timeStart = now - (elapsed % frameRate);
-                multiCall(sketchRAF, linesPerUpdate);
+                if (mouseDown) {
+                    let xThresh = Math.abs(lastPos[0] - currPos[0]);
+                    let yThresh = Math.abs(lastPos[1] - currPos[1]);
+
+                    console.log(lastPos, currPos, xThresh, yThresh)
+                    if (xThresh > 3 || yThresh > 3) {
+
+                        line.moveTo(...lastPos);
+                        line.lineTo(...currPos);
+
+                        lastPos = currPos;
+
+                        currArr.push(currPos);
+                    }
+                }
+                else {
+                    multiCall(sketchRAF, linesPerUpdate);
+                }
             }
 
             window.requestAnimationFrame(step);
         }
         let timeStart = Date.now();
-        let frameRate = 1000 / 120;
+        let frameRate = 1000 / 30;
         window.requestAnimationFrame(step);
 
         const mouseDownHandler = e => {
             lastPos = [e.offsetX, e.offsetY];
+            currPos = [e.offsetX + 1, e.offsetY];
             mouseDown = true;
             line = new PIXI.Graphics();
             line.lineStyle(3, '0x00FF00');
@@ -49,12 +68,14 @@ const PixiCanvas = () => {
         const mouseMoveHandler = e => {
             if (!mouseDown) return;
 
-            let currPos = [e.offsetX, e.offsetY];
-            line.moveTo(...lastPos);
-            line.lineTo(...currPos);
+            currPos = [e.offsetX, e.offsetY];
+            // line.moveTo(...lastPos);
+            // line.lineTo(...currPos);
 
-            lastPos = currPos;
-            currArr.push(currPos);
+
+
+            //lastPos = currPos;
+            //currArr.push(currPos);
         };
         const mouseUpHandler = e => {
             if (!mouseDown) return
@@ -87,9 +108,9 @@ const PixiCanvas = () => {
                     app.stage.addChild(line);
                 }
 
-                if (j === savedArr[i].length-1) {
+                if (j === savedArr[i].length - 1) {
                     i++;
-                    if (i === savedArr.length){
+                    if (i === savedArr.length) {
                         doDraw = false;
                         line = null;
                         i = j = 0;
@@ -128,7 +149,7 @@ const PixiCanvas = () => {
 
         const clearCanvas = () => {
             savedArr = arr.map(subArr => subArr.map(tuple => [...tuple]));
-            console.log(savedArr[0].length)
+            console.log(savedArr[0])
             doDraw = true;
             app.stage.removeChildren();
         }
@@ -151,7 +172,7 @@ const PixiCanvas = () => {
         ref.current.appendChild(clearBtn);
 
         const redrawBtn = document.createElement('button');
-        redrawBtn.addEventListener('click', e => sketchLoop(i,j,1));
+        redrawBtn.addEventListener('click', e => sketchLoop(i, j, 1));
         redrawBtn.innerText = 'Redraw'
         ref.current.appendChild(redrawBtn);
 
