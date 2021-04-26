@@ -6,14 +6,36 @@ let mouseDown = false;
 const PixiCanvas = () => {
     const ref = useRef(null);
 
-
     useEffect(() => {
         let lastPos;
         let line = null;
         let arr = [];
         let currArr = [];
         let savedArr = [];
-        let redraw = false;
+        let doDraw = false;
+        let i = 0;
+        let j = 0;
+        let linesPerUpdate = 5;
+
+        const multiCall = (cb, amount) =>{
+            for (let i = 0; i < amount; i++)
+                cb();
+        }
+
+        const step = () => {
+            const now = Date.now();
+            const elapsed = now - timeStart;
+
+            if (elapsed > frameRate) {
+                timeStart = now - (elapsed % frameRate);
+                multiCall(sketchRAF, linesPerUpdate);
+            }
+
+            window.requestAnimationFrame(step);
+        }
+        let timeStart = Date.now();
+        let frameRate = 1000 / 120;
+        window.requestAnimationFrame(step);
 
         const mouseDownHandler = e => {
             lastPos = [e.offsetX, e.offsetY];
@@ -42,34 +64,72 @@ const PixiCanvas = () => {
             line = null;
         };
 
-        const update = () => {
-            if (redraw && savedArr.length > 0) {
+        const sketchLoop = () => {
+            let line = new PIXI.Graphics();
+            line.lineStyle(3, '0x00FF00');
+            app.stage.addChild(line);
+
+            for (let i = 0; i < savedArr.length; i++) {
+                let lastPoint = savedArr[i][0];
+                for (let j = 1; j < savedArr[i].length; j++) {
+                    line.moveTo(...lastPoint);
+                    line.lineTo(...savedArr[i][j]);
+                    lastPoint = savedArr[i][j];
+                }
+            }
+        }
+
+        const sketchRAF = () => {
+            if (doDraw) {
                 if (line === null) {
                     line = new PIXI.Graphics();
                     line.lineStyle(3, '0x00FF00');
                     app.stage.addChild(line);
                 }
 
-                line.moveTo(...savedArr[0][0]);
-                line.lineTo(...savedArr[0][1]);
-
-                savedArr[0].shift();
-                if (savedArr[0].length === 1)
-                    savedArr.shift();
-                if (savedArr.length === 0) {
-                    redraw = false;
-                    line = null;
+                if (j === savedArr[i].length-1) {
+                    i++;
+                    if (i === savedArr.length){
+                        doDraw = false;
+                        line = null;
+                        i = j = 0;
+                        return;
+                    }
+                    j = 0;
                 }
+
+                line.moveTo(...savedArr[i][j]);
+                line.lineTo(...savedArr[i][++j]);
             }
         }
 
+        const sketchInterval = () => {
+            const interval = setInterval(() => {
+                if (savedArr.length > 0) {
+                    if (line === null) {
+                        line = new PIXI.Graphics();
+                        line.lineStyle(3, '0x00FF00');
+                        app.stage.addChild(line);
+                    }
 
-        const redrawCanvas = () => {
-            redraw = true;
+                    line.moveTo(...savedArr[0][0]);
+                    line.lineTo(...savedArr[0][1]);
+
+                    savedArr[0].shift();
+                    if (savedArr[0].length === 1)
+                        savedArr.shift();
+                    if (savedArr.length === 0) {
+                        line = null;
+                        clearInterval(interval);
+                    }
+                }
+            }, 1);
         }
 
         const clearCanvas = () => {
             savedArr = arr.map(subArr => subArr.map(tuple => [...tuple]));
+            console.log(savedArr[0].length)
+            doDraw = true;
             app.stage.removeChildren();
         }
 
@@ -91,11 +151,9 @@ const PixiCanvas = () => {
         ref.current.appendChild(clearBtn);
 
         const redrawBtn = document.createElement('button');
-        redrawBtn.addEventListener('click', e => redrawCanvas());
+        redrawBtn.addEventListener('click', e => sketchLoop(i,j,1));
         redrawBtn.innerText = 'Redraw'
         ref.current.appendChild(redrawBtn);
-
-        setInterval(update, 1000/60);
 
         return () => {
             app.destroy(true, true);
