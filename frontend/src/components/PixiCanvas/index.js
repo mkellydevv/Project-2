@@ -16,7 +16,8 @@ const PixiCanvas = () => {
         let doDraw = false;
         let i = 0;
         let j = 0;
-        let linesPerUpdate = 10;
+        let linesPerUpdate = 1;
+        let lineColor = '0x000000';
 
         const multiCall = (cb, amount) => {
             for (let i = 0; i < amount; i++)
@@ -33,7 +34,6 @@ const PixiCanvas = () => {
                     let xThresh = Math.abs(lastPos[0] - currPos[0]);
                     let yThresh = Math.abs(lastPos[1] - currPos[1]);
 
-                    console.log(lastPos, currPos, xThresh, yThresh)
                     if (xThresh > 3 || yThresh > 3) {
 
                         line.moveTo(...lastPos);
@@ -60,7 +60,7 @@ const PixiCanvas = () => {
             currPos = [e.offsetX + 1, e.offsetY];
             mouseDown = true;
             line = new PIXI.Graphics();
-            line.lineStyle(3, '0x00FF00');
+            line.lineStyle(3, lineColor);
             app.stage.addChild(line);
 
             currArr.push(lastPos);
@@ -69,25 +69,19 @@ const PixiCanvas = () => {
             if (!mouseDown) return;
 
             currPos = [e.offsetX, e.offsetY];
-            // line.moveTo(...lastPos);
-            // line.lineTo(...currPos);
-
-
-
-            //lastPos = currPos;
-            //currArr.push(currPos);
         };
         const mouseUpHandler = e => {
             if (!mouseDown) return
             mouseDown = false;
             arr.push(currArr)
+            console.log(currArr.length)
             currArr = [];
             line = null;
         };
 
         const sketchLoop = () => {
             let line = new PIXI.Graphics();
-            line.lineStyle(3, '0x00FF00');
+            line.lineStyle(3, lineColor);
             app.stage.addChild(line);
 
             for (let i = 0; i < savedArr.length; i++) {
@@ -104,7 +98,7 @@ const PixiCanvas = () => {
             if (doDraw) {
                 if (line === null) {
                     line = new PIXI.Graphics();
-                    line.lineStyle(3, '0x00FF00');
+                    line.lineStyle(3, lineColor);
                     app.stage.addChild(line);
                 }
 
@@ -129,7 +123,7 @@ const PixiCanvas = () => {
                 if (savedArr.length > 0) {
                     if (line === null) {
                         line = new PIXI.Graphics();
-                        line.lineStyle(3, '0x00FF00');
+                        line.lineStyle(3, lineColor);
                         app.stage.addChild(line);
                     }
 
@@ -154,7 +148,11 @@ const PixiCanvas = () => {
             app.stage.removeChildren();
         }
 
-        const app = new PIXI.Application({ width: 256, height: 256 });
+        const app = new PIXI.Application({
+            width: 800,
+            height: 600,
+            backgroundColor: '0xe1e3dd'
+        });
         ref.current.appendChild(app.view);
 
         app.stage.interactive = true;
