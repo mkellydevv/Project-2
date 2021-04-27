@@ -1,7 +1,7 @@
 const express = require('express');
 const asyncHandler = require('express-async-handler');
 
-const { Sketch } = require('../../db/models');
+const { Sketch, SketchBook } = require('../../db/models');
 
 const router = express.Router();
 
@@ -19,7 +19,9 @@ router.get('/:id', asyncHandler(async function(req, res) {
 
 // Create a new sketch
 router.post('/', asyncHandler(async function(req, res) {
-    const { userId, sketchBookId, points, flagged, nsfw } = req.body;
+    let { userId, sketchBookId, points, flagged, nsfw } = req.body;
+    if (!sketchBookId)
+        sketchBookId = await SketchBook.createNewSketchBook();
     const sketch = await Sketch.createNewSketch({ userId, sketchBookId, points, flagged, nsfw });
     return res.json(sketch);
 }));

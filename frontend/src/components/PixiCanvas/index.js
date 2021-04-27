@@ -1,261 +1,254 @@
 import React, { useEffect, useRef } from 'react';
+import { useSelector } from 'react-redux';
 import { csrfFetch } from '../../store/csrf';
 import * as PIXI from "pixi.js";
 
-let mouseDown = false;
+// Helper Functions
 
-const PixiCanvas = () => {
-    const ref = useRef(null);
+function multiCall(cb, amount) {
+    for (let i = 0; i < amount; i++)
+        cb();
+}
 
-    useEffect(() => {
-        let lastPos;
-        let currPos;
-        let line = null;
-        let arr = [];
-        let currArr = [];
-        let savedArr = [];
-        let doDraw = false;
-        let i = 0;
-        let j = 0;
-        let linesPerUpdate = 1;
-        let lineColor = '0x000000';
+function flattenArr(arr) {
+    const retArr = [];
+    for (let i = 0; i < arr.length; i++) {
+        for (let j = 0; j < arr[i].length; j++)
+            retArr.push([...arr[i][j]]);
+        retArr.push([null, null]);
+    }
+    return retArr;
+}
 
-        const multiCall = (cb, amount) => {
-            for (let i = 0; i < amount; i++)
-                cb();
+function unflattenArr(arr) {
+    const retArr = [];
+    let subArr = [];
+    for (const tuple of arr) {
+        if (tuple[0] === null) {
+            retArr.push(subArr);
+            subArr = [];
         }
+        else
+            subArr.push([...tuple]);
+    }
+    return retArr;
+}
 
-        // (async ()=>{
-        //     const res = await fetch(`/api/sketches/${3}`, {
-        //         method: 'GET',
-        //         headers: {
-        //             'Content-Type': 'application/json'
-        //         }
-        //     })
-        //     let data = await res.json();
-        //     //arr = data[0].points;
-        //     console.log(data.points);
-        //     arr = unflattenArr(data.points);
-        // })()
+class PixiCanvasClass {
+    constructor(user = null) {
+        this.lastPos = null;
+        this.currPos = null;
+        this.line = null;
+        this.arr = [];
+        this.currArr = [];
+        this.savedArr = [];
+        this.doDraw = false;
+        this.i = 0;
+        this.j = 0;
+        this.linesPerUpdate = 1;
+        this.lineColor = '0x000000';
+        this.user = user;
+        this.mouseDown = false;
 
-        const flattenArr = (arr) => {
-            const retArr = [];
-            for (let i = 0; i < arr.length; i++) {
-                for (let j = 0; j < arr[i].length; j++)
-                    retArr.push([...arr[i][j]]);
-                retArr.push([null, null]);
-            }
-            return retArr;
-        }
+        this.timeStart = Date.now();
+        this.frameRate = 1000 / 30;
 
-        const unflattenArr = (arr) => {
-            const retArr = [];
-            let subArr = [];
-            for (const tuple of arr) {
-                if (tuple[0] === null) {
-                    retArr.push(subArr);
-                    subArr = [];
-                }
-                else
-                    subArr.push([...tuple]);
-            }
-            return retArr;
-        }
-
-        const createNewSketch = async () => {
-            const res = await csrfFetch(`/api/sketches`, {
-                method: 'POST',
-                body: JSON.stringify({
-                    userId: 1,
-                    sketchBookId: 1,
-                    points: flattenArr(savedArr),
-                    flagged: 0,
-                    nsfw: false
-                }),
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-            let data = await res.json();
-            console.log(data);
-        }
-
-        const updateSketch = async () => {
-            const res = await csrfFetch(`/api/sketches/${2}`, {
-                method: 'PATCH',
-                body: JSON.stringify({
-                    nsfw: false
-                }),
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-            let data = await res.json();
-            console.log(data);
-        }
-
-        const step = () => {
-            const now = Date.now();
-            const elapsed = now - timeStart;
-
-            if (elapsed > frameRate) {
-                timeStart = now - (elapsed % frameRate);
-                if (mouseDown) {
-                    let xThresh = Math.abs(lastPos[0] - currPos[0]);
-                    let yThresh = Math.abs(lastPos[1] - currPos[1]);
-
-                    if (xThresh > 3 || yThresh > 3) {
-
-                        line.moveTo(...lastPos);
-                        line.lineTo(...currPos);
-
-                        lastPos = currPos;
-
-                        currArr.push(currPos);
-                    }
-                }
-                else {
-                    multiCall(sketchRAF, linesPerUpdate);
-                }
-            }
-
-            window.requestAnimationFrame(step);
-        }
-        let timeStart = Date.now();
-        let frameRate = 1000 / 30;
-        window.requestAnimationFrame(step);
-
-        const mouseDownHandler = e => {
-            lastPos = [e.offsetX, e.offsetY];
-            currPos = [e.offsetX + 1, e.offsetY];
-            mouseDown = true;
-            line = new PIXI.Graphics();
-            line.lineStyle(3, lineColor);
-            app.stage.addChild(line);
-
-            currArr.push(lastPos);
-        };
-        const mouseMoveHandler = e => {
-            if (!mouseDown) return;
-
-            currPos = [e.offsetX, e.offsetY];
-        };
-        const mouseUpHandler = e => {
-            if (!mouseDown) return
-            mouseDown = false;
-            console.log(currArr.length)
-            if (currArr.length > 1) {
-                arr.push(currArr)
-            }
-            currArr = [];
-            line = null;
-        };
-
-        const sketchLoop = () => {
-            let line = new PIXI.Graphics();
-            line.lineStyle(3, lineColor);
-            app.stage.addChild(line);
-
-            for (let i = 0; i < savedArr.length; i++) {
-                let lastPoint = savedArr[i][0];
-                for (let j = 1; j < savedArr[i].length; j++) {
-                    line.moveTo(...lastPoint);
-                    line.lineTo(...savedArr[i][j]);
-                    lastPoint = savedArr[i][j];
-                }
-            }
-        }
-
-        const sketchRAF = () => {
-            if (doDraw) {
-                if (line === null) {
-                    line = new PIXI.Graphics();
-                    line.lineStyle(3, lineColor);
-                    app.stage.addChild(line);
-                }
-
-                if (j === savedArr[i].length - 1) {
-                    i++;
-                    if (i === savedArr.length) {
-                        doDraw = false;
-                        line = null;
-                        i = j = 0;
-                        return;
-                    }
-                    j = 0;
-                }
-
-                line.moveTo(...savedArr[i][j]);
-                line.lineTo(...savedArr[i][++j]);
-            }
-        }
-
-        const sketchInterval = () => {
-            const interval = setInterval(() => {
-                if (savedArr.length > 0) {
-                    if (line === null) {
-                        line = new PIXI.Graphics();
-                        line.lineStyle(3, lineColor);
-                        app.stage.addChild(line);
-                    }
-
-                    line.moveTo(...savedArr[0][0]);
-                    line.lineTo(...savedArr[0][1]);
-
-                    savedArr[0].shift();
-                    if (savedArr[0].length === 1)
-                        savedArr.shift();
-                    if (savedArr.length === 0) {
-                        line = null;
-                        clearInterval(interval);
-                    }
-                }
-            }, 1);
-        }
-
-        const clearCanvas = () => {
-            savedArr = arr.map(subArr => subArr.map(tuple => [...tuple]));
-            console.log(savedArr)
-            createNewSketch();
-            doDraw = true;
-            app.stage.removeChildren();
-        }
-
-        const app = new PIXI.Application({
+        this.app = new PIXI.Application({
             width: 800,
             height: 600,
             backgroundColor: '0xe1e3dd'
         });
-        ref.current.appendChild(app.view);
+    }
 
-        app.stage.interactive = true;
+    start () {
+        window.requestAnimationFrame(() => this.step());
+    }
 
-        app.view.addEventListener('mousedown', mouseDownHandler);
-        app.view.addEventListener('pointermove', mouseMoveHandler);
-        app.view.addEventListener('pointerup', mouseUpHandler);
-        app.view.addEventListener('mouseout', mouseUpHandler);
+    async testFetch(id = 3) {
+        const res = await fetch(`/api/sketches/${id}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        let data = await res.json();
+        //arr = data[0].points;
+        console.log(data.points);
+        this.arr = unflattenArr(data.points);
+    }
 
-        app.start();
+    async createNewSketch() {
+        console.log('user.id', this.user)
+        const res = await csrfFetch(`/api/sketches`, {
+            method: 'POST',
+            body: JSON.stringify({
+                userId: this.user.id,
+                sketchBookId: 2,
+                points: flattenArr(this.savedArr),
+                flagged: 0,
+                nsfw: false
+            }),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        let data = await res.json();
+        console.log(data);
+    }
+
+    async updateSketch() {
+        const res = await csrfFetch(`/api/sketches/${2}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+                nsfw: true
+            }),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        let data = await res.json();
+        console.log(data);
+    }
+
+    step() {
+        const now = Date.now();
+        const elapsed = now - this.timeStart;
+
+        if (elapsed > this.frameRate) {
+            this.timeStart = now - (elapsed % this.frameRate);
+            if (this.mouseDown) {
+                let xThresh = Math.abs(this.lastPos[0] - this.currPos[0]);
+                let yThresh = Math.abs(this.lastPos[1] - this.currPos[1]);
+
+                if (xThresh > 3 || yThresh > 3) {
+
+                    this.line.moveTo(...this.lastPos);
+                    this.line.lineTo(...this.currPos);
+
+                    this.lastPos = this.currPos;
+
+                    this.currArr.push([...this.currPos]);
+                }
+            }
+            else {
+                multiCall(() => {
+                    this.sketchRAF()}, this.linesPerUpdate);
+            }
+        }
+
+        window.requestAnimationFrame(() => this.step());
+    }
+
+    mouseDownHandler(e) {
+        this.lastPos = [e.offsetX, e.offsetY];
+        this.currPos = [e.offsetX + 1, e.offsetY];
+        this.mouseDown = true;
+        this.line = new PIXI.Graphics();
+        this.line.lineStyle(3, this.lineColor);
+        this.app.stage.addChild(this.line);
+
+        this.currArr.push([...this.lastPos]);
+    };
+    mouseMoveHandler(e) {
+        if (!this.mouseDown) return;
+
+        this.currPos = [e.offsetX, e.offsetY];
+    };
+    mouseUpHandler(e) {
+        if (!this.mouseDown) return
+        this.mouseDown = false;
+        console.log(this.currArr.length)
+        if (this.currArr.length > 1) {
+            this.arr.push([...this.currArr]);
+        }
+        this.currArr = [];
+        this.line = null;
+    };
+
+
+    sketchRAF() {
+        if (this.doDraw) {
+            if (this.line === null) {
+                this.line = new PIXI.Graphics();
+                this.line.lineStyle(3, this.lineColor);
+                this.app.stage.addChild(this.line);
+            }
+
+            if (this.j === this.savedArr[this.i].length - 1) {
+                this.i++;
+                if (this.i === this.savedArr.length) {
+                    this.doDraw = false;
+                    this.line = null;
+                    this.i = this.j = 0;
+                    return;
+                }
+                this.j = 0;
+            }
+
+            this.line.moveTo(...this.savedArr[this.i][this.j]);
+            this.line.lineTo(...this.savedArr[this.i][++this.j]);
+        }
+    }
+
+    clearCanvas() {
+        this.savedArr = this.arr.map(subArr => subArr.map(tuple => [...tuple]));
+        console.log(this.savedArr)
+        this.createNewSketch();
+        this.doDraw = true;
+        this.app.stage.removeChildren();
+    }
+
+    getRef(ref) {
+        this.app.stage.interactive = true;
+
+        this.app.view.addEventListener('mousedown', this.mouseDownHandler.bind(this));
+        this.app.view.addEventListener('mousemove', this.mouseMoveHandler.bind(this));
+        this.app.view.addEventListener('mouseup', this.mouseUpHandler.bind(this));
+        this.app.view.addEventListener('mouseout', this.mouseUpHandler.bind(this));
+
+        this.app.start();
 
         const clearBtn = document.createElement('button');
-        clearBtn.addEventListener('click', clearCanvas);
+        clearBtn.addEventListener('click', this.clearCanvas.bind(this));
         clearBtn.innerText = 'Clear'
-        ref.current.appendChild(clearBtn);
 
         const redrawBtn = document.createElement('button');
-        redrawBtn.addEventListener('click', e => updateSketch());
-        redrawBtn.innerText = 'Button'
+        redrawBtn.addEventListener('click', function (e) {this.updateSketch()}.bind(this));
+        redrawBtn.innerText = 'Button';
+
+        const container = document.createElement('div');
+
+        ref.current.appendChild(this.app.view);
+        ref.current.appendChild(clearBtn);
         ref.current.appendChild(redrawBtn);
+        console.log(container)
+        return container;
+    }
+
+}
+
+const PixiCanvas = () => {
+    const ref = useRef(null);
+    const user = useSelector(state => state.session.user);
+    const pixiCanvas = new PixiCanvasClass(user);
+
+    //pixiCanvas.start();
+    //ref = ref.current.appendChild(pixiCanvas.getRef(ref));
+
+    useEffect(() => {
+        if (!user) return;
+
+        pixiCanvas.getRef(ref);
+        console.log(ref);
+        pixiCanvas.start();
 
         return () => {
-            app.destroy(true, true);
+            pixiCanvas.destroy(true, true);
         }
-    }, [])
+    }, [user])
 
     return (
-        <>
-            <div ref={ref} />
-        </>
+        <div ref={ref} />
     );
 }
 
