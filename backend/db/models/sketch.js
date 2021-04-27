@@ -39,7 +39,7 @@ module.exports = (sequelize, DataTypes) => {
     Sketch.getSketchById = async function (id) {
         return await Sketch.findByPk(id);
     }
-    Sketch.createNewSketch = async function({ userId, sketchBookId, points, flagged, nsfw }) {
+    Sketch.createNewSketch = async function ({ userId, sketchBookId, points, flagged, nsfw }) {
         const sketch = await Sketch.create({
             userId,
             sketchBookId,
@@ -49,6 +49,13 @@ module.exports = (sequelize, DataTypes) => {
             version: SKETCH_VERSION
         });
         return sketch;
+    }
+    Sketch.updateSketch = async function (id, { points, flagged, nsfw }) {
+        await Sketch.update(
+            {points, flagged, nsfw},
+            {where: { id }}
+        );
+        return id;
     }
     return Sketch;
 };

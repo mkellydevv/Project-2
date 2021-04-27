@@ -25,21 +25,21 @@ const PixiCanvas = () => {
                 cb();
         }
 
-        (async ()=>{
-            const res = await fetch(`/api/sketches/${3}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            let data = await res.json();
-            //arr = data[0].points;
-            console.log(data.points);
-            arr = unflattenArr(data.points);
-        })()
+        // (async ()=>{
+        //     const res = await fetch(`/api/sketches/${3}`, {
+        //         method: 'GET',
+        //         headers: {
+        //             'Content-Type': 'application/json'
+        //         }
+        //     })
+        //     let data = await res.json();
+        //     //arr = data[0].points;
+        //     console.log(data.points);
+        //     arr = unflattenArr(data.points);
+        // })()
 
         const flattenArr = (arr) => {
-            let retArr = [];
+            const retArr = [];
             for (let i = 0; i < arr.length; i++) {
                 for (let j = 0; j < arr[i].length; j++)
                     retArr.push([...arr[i][j]]);
@@ -49,17 +49,15 @@ const PixiCanvas = () => {
         }
 
         const unflattenArr = (arr) => {
-            let retArr = [];
+            const retArr = [];
             let subArr = [];
             for (const tuple of arr) {
-                console.log(tuple)
                 if (tuple[0] === null) {
                     retArr.push(subArr);
                     subArr = [];
                 }
-                else {
+                else
                     subArr.push([...tuple]);
-                }
             }
             return retArr;
         }
@@ -72,6 +70,20 @@ const PixiCanvas = () => {
                     sketchBookId: 1,
                     points: flattenArr(savedArr),
                     flagged: 0,
+                    nsfw: false
+                }),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            let data = await res.json();
+            console.log(data);
+        }
+
+        const updateSketch = async () => {
+            const res = await csrfFetch(`/api/sketches/${2}`, {
+                method: 'PATCH',
+                body: JSON.stringify({
                     nsfw: false
                 }),
                 headers: {
@@ -231,11 +243,9 @@ const PixiCanvas = () => {
         ref.current.appendChild(clearBtn);
 
         const redrawBtn = document.createElement('button');
-        redrawBtn.addEventListener('click', e => sketchLoop(i, j, 1));
-        redrawBtn.innerText = 'Redraw'
+        redrawBtn.addEventListener('click', e => updateSketch());
+        redrawBtn.innerText = 'Button'
         ref.current.appendChild(redrawBtn);
-
-
 
         return () => {
             app.destroy(true, true);

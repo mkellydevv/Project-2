@@ -20,14 +20,13 @@ router.get('/:id', asyncHandler(async function(req, res) {
 // Create a new sketch
 router.post('/', asyncHandler(async function(req, res) {
     const { userId, sketchBookId, points, flagged, nsfw } = req.body;
-    console.log(points)
-    const sketch = await Sketch.createNewSketch({
-        userId,
-        sketchBookId,
-        points,
-        flagged,
-        nsfw
-    });
+    const sketch = await Sketch.createNewSketch({ userId, sketchBookId, points, flagged, nsfw });
+    return res.json(sketch);
+}));
+
+// Update a sketch
+router.patch('/:id', asyncHandler(async function(req, res) {
+    const sketch = await Sketch.updateSketch(req.params.id, req.body);
     return res.json(sketch);
 }));
 

@@ -3,7 +3,7 @@
 module.exports = {
     up: (queryInterface, Sequelize) => {
         return queryInterface.bulkInsert('Sketches', [{
-            points: [[1, 1], [10, 10]],
+            points: [[1, 1], [10, 10], [10,40], [null, null]],
             userId: 1,
             sketchBookId: 1
         }])
