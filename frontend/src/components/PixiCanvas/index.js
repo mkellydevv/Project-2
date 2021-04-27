@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { csrfFetch } from '../../store/csrf';
 import * as PIXI from "pixi.js";
 
 let mouseDown = false;
@@ -22,6 +23,63 @@ const PixiCanvas = () => {
         const multiCall = (cb, amount) => {
             for (let i = 0; i < amount; i++)
                 cb();
+        }
+
+        (async ()=>{
+            const res = await fetch(`/api/sketches/${3}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            let data = await res.json();
+            //arr = data[0].points;
+            console.log(data.points);
+            arr = unflattenArr(data.points);
+        })()
+
+        const flattenArr = (arr) => {
+            let retArr = [];
+            for (let i = 0; i < arr.length; i++) {
+                for (let j = 0; j < arr[i].length; j++)
+                    retArr.push([...arr[i][j]]);
+                retArr.push([null, null]);
+            }
+            return retArr;
+        }
+
+        const unflattenArr = (arr) => {
+            let retArr = [];
+            let subArr = [];
+            for (const tuple of arr) {
+                console.log(tuple)
+                if (tuple[0] === null) {
+                    retArr.push(subArr);
+                    subArr = [];
+                }
+                else {
+                    subArr.push([...tuple]);
+                }
+            }
+            return retArr;
+        }
+
+        const createNewSketch = async () => {
+            const res = await csrfFetch(`/api/sketches`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    userId: 1,
+                    sketchBookId: 1,
+                    points: flattenArr(savedArr),
+                    flagged: 0,
+                    nsfw: false
+                }),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            let data = await res.json();
+            console.log(data);
         }
 
         const step = () => {
@@ -73,8 +131,10 @@ const PixiCanvas = () => {
         const mouseUpHandler = e => {
             if (!mouseDown) return
             mouseDown = false;
-            arr.push(currArr)
             console.log(currArr.length)
+            if (currArr.length > 1) {
+                arr.push(currArr)
+            }
             currArr = [];
             line = null;
         };
@@ -143,7 +203,8 @@ const PixiCanvas = () => {
 
         const clearCanvas = () => {
             savedArr = arr.map(subArr => subArr.map(tuple => [...tuple]));
-            console.log(savedArr[0])
+            console.log(savedArr)
+            createNewSketch();
             doDraw = true;
             app.stage.removeChildren();
         }
@@ -173,6 +234,8 @@ const PixiCanvas = () => {
         redrawBtn.addEventListener('click', e => sketchLoop(i, j, 1));
         redrawBtn.innerText = 'Redraw'
         ref.current.appendChild(redrawBtn);
+
+
 
         return () => {
             app.destroy(true, true);
