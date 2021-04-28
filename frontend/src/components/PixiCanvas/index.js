@@ -35,7 +35,7 @@ function unflattenArr(arr) {
 }
 
 class PixiCanvasClass {
-    constructor(user = null) {
+    constructor() {
         this.lastPos = null;
         this.currPos = null;
         this.line = null;
@@ -47,7 +47,7 @@ class PixiCanvasClass {
         this.j = 0;
         this.linesPerUpdate = 1;
         this.lineColor = '0x000000';
-        this.user = user;
+        this.user = null;
         this.mouseDown = false;
 
         this.timeStart = Date.now();
@@ -60,7 +60,7 @@ class PixiCanvasClass {
         });
     }
 
-    start () {
+    start() {
         window.requestAnimationFrame(() => this.step());
     }
 
@@ -78,6 +78,7 @@ class PixiCanvasClass {
     }
 
     async createNewSketch() {
+        console.log(this)
         console.log('user.id', this.user)
         const res = await csrfFetch(`/api/sketches`, {
             method: 'POST',
@@ -115,6 +116,7 @@ class PixiCanvasClass {
         const elapsed = now - this.timeStart;
 
         if (elapsed > this.frameRate) {
+            //console.log(`this.user?.id`, this.user)
             this.timeStart = now - (elapsed % this.frameRate);
             if (this.mouseDown) {
                 let xThresh = Math.abs(this.lastPos[0] - this.currPos[0]);
@@ -132,7 +134,8 @@ class PixiCanvasClass {
             }
             else {
                 multiCall(() => {
-                    this.sketchRAF()}, this.linesPerUpdate);
+                    this.sketchRAF()
+                }, this.linesPerUpdate);
             }
         }
 
@@ -157,7 +160,6 @@ class PixiCanvasClass {
     mouseUpHandler(e) {
         if (!this.mouseDown) return
         this.mouseDown = false;
-        console.log(this.currArr.length)
         if (this.currArr.length > 1) {
             this.arr.push([...this.currArr]);
         }
@@ -198,7 +200,7 @@ class PixiCanvasClass {
         this.app.stage.removeChildren();
     }
 
-    getRef(ref) {
+    getDOM() {
         this.app.stage.interactive = true;
 
         this.app.view.addEventListener('mousedown', this.mouseDownHandler.bind(this));
@@ -209,46 +211,44 @@ class PixiCanvasClass {
         this.app.start();
 
         const clearBtn = document.createElement('button');
-        clearBtn.addEventListener('click', this.clearCanvas.bind(this));
+        clearBtn.addEventListener('click', function (e) {
+            this.clearCanvas();
+        }.bind(this));
         clearBtn.innerText = 'Clear'
 
         const redrawBtn = document.createElement('button');
-        redrawBtn.addEventListener('click', function (e) {this.updateSketch()}.bind(this));
+        redrawBtn.addEventListener('click', function (e) { this.updateSketch() }.bind(this));
         redrawBtn.innerText = 'Button';
 
         const container = document.createElement('div');
+        container.appendChild(this.app.view);
+        container.appendChild(clearBtn);
+        container.appendChild(redrawBtn);
 
-        ref.current.appendChild(this.app.view);
-        ref.current.appendChild(clearBtn);
-        ref.current.appendChild(redrawBtn);
-        console.log(container)
         return container;
     }
 
+    async setUser(user) {
+        this.user = user;
+    }
 }
 
 const PixiCanvas = () => {
-    const ref = useRef(null);
     const user = useSelector(state => state.session.user);
-    const pixiCanvas = new PixiCanvasClass(user);
-
-    //pixiCanvas.start();
-    //ref = ref.current.appendChild(pixiCanvas.getRef(ref));
+    const pixiCanvas = useRef(new PixiCanvasClass());
+    const pixiDOM = useRef(null);
 
     useEffect(() => {
-        if (!user) return;
+        pixiDOM.current.appendChild(pixiCanvas.current.getDOM());
+        pixiCanvas.current.start();
+    }, []);
 
-        pixiCanvas.getRef(ref);
-        console.log(ref);
-        pixiCanvas.start();
-
-        return () => {
-            pixiCanvas.destroy(true, true);
-        }
-    }, [user])
+    useEffect(() => {
+        pixiCanvas.current.setUser(user);
+    }, [user]);
 
     return (
-        <div ref={ref} />
+        <div ref={pixiDOM} />
     );
 }
 
