@@ -31,7 +31,12 @@ module.exports = (sequelize, DataTypes) => {
         }
     }, {});
     Sketch.associate = function (models) {
-        // associations can be defined here
+        Sketch.belongsTo(models.User, {
+            foreignKey: 'userId'
+        });
+        Sketch.belongsTo(models.SketchBook, {
+            foreignKey: 'sketchBookId'
+        });
     };
     Sketch.getAllSketches = async function () {
         return await Sketch.findAll();
@@ -44,7 +49,7 @@ module.exports = (sequelize, DataTypes) => {
             userId,
             sketchBookId,
             points,
-            flagged,
+            flagged: 0,
             nsfw,
             version: SKETCH_VERSION
         });

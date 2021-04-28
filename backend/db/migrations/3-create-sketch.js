@@ -27,11 +27,21 @@ module.exports = {
             },
             userId: {
                 allowNull: false,
-                type: Sequelize.INTEGER
+                type: Sequelize.INTEGER,
+                references: {
+                    model: {
+                        tableName: 'Users'
+                    }
+                }
             },
             sketchBookId: {
                 allowNull: false,
-                type: Sequelize.INTEGER
+                type: Sequelize.INTEGER,
+                references: {
+                    model: {
+                        tableName: 'SketchBooks'
+                    }
+                }
             },
             createdAt: {
                 allowNull: false,

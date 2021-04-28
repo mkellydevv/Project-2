@@ -6,8 +6,10 @@ import * as PIXI from "pixi.js";
 // Helper Functions
 
 function multiCall(cb, amount) {
+    let result = null;
     for (let i = 0; i < amount; i++)
-        cb();
+        result = cb();
+    return result;
 }
 
 function flattenArr(arr) {
@@ -35,7 +37,22 @@ function unflattenArr(arr) {
 }
 
 class PixiCanvasClass {
-    constructor() {
+    constructor(interactive = false) {
+        this.interactive = interactive;
+
+        if (this.interactive) {
+            this.scale = 1;
+            this.lineWidth = 3;
+        }
+        else {
+            this.scale = .25;
+            this.lineWidth = 5;
+        }
+
+        this.sketchBookId = '';
+
+        this.w = 800;
+        this.h = 600;
         this.lastPos = null;
         this.currPos = null;
         this.line = null;
@@ -52,19 +69,29 @@ class PixiCanvasClass {
 
         this.timeStart = Date.now();
         this.frameRate = 1000 / 30;
+        this.raf = null;
 
         this.app = new PIXI.Application({
-            width: 800,
-            height: 600,
+            width: this.w,
+            height: this.h,
             backgroundColor: '0xe1e3dd'
         });
+
+        this.app.renderer.resize(this.w * this.scale, this.h * this.scale)
+        this.app.stage.scale.set(this.scale, this.scale)
+
+        this.app.stage.interactive = true;
     }
 
     start() {
-        window.requestAnimationFrame(() => this.step());
+        this.raf = window.requestAnimationFrame(() => this.step());
+        if (this.arr?.length) {
+            console.log('ccccccccc', this.arr)
+            this.loadSketch();
+        }
     }
 
-    async testFetch(id = 3) {
+    async testFetch(id = 13) {
         const res = await fetch(`/api/sketches/${id}`, {
             method: 'GET',
             headers: {
@@ -72,21 +99,18 @@ class PixiCanvasClass {
             }
         })
         let data = await res.json();
-        //arr = data[0].points;
         console.log(data.points);
         this.arr = unflattenArr(data.points);
     }
 
     async createNewSketch() {
-        console.log(this)
-        console.log('user.id', this.user)
+        this.savedArr = this.arr.map(subArr => subArr.map(tuple => [...tuple]));
         const res = await csrfFetch(`/api/sketches`, {
             method: 'POST',
             body: JSON.stringify({
                 userId: this.user.id,
-                sketchBookId: 2,
+                sketchBookId: this.sketchBookId,
                 points: flattenArr(this.savedArr),
-                flagged: 0,
                 nsfw: false
             }),
             headers: {
@@ -108,15 +132,14 @@ class PixiCanvasClass {
             }
         });
         let data = await res.json();
-        console.log(data);
     }
 
     step() {
         const now = Date.now();
         const elapsed = now - this.timeStart;
+        let result = null;
 
         if (elapsed > this.frameRate) {
-            //console.log(`this.user?.id`, this.user)
             this.timeStart = now - (elapsed % this.frameRate);
             if (this.mouseDown) {
                 let xThresh = Math.abs(this.lastPos[0] - this.currPos[0]);
@@ -133,13 +156,11 @@ class PixiCanvasClass {
                 }
             }
             else {
-                multiCall(() => {
-                    this.sketchRAF()
-                }, this.linesPerUpdate);
+                result = multiCall(this.sketchRAF.bind(this), this.linesPerUpdate);
             }
         }
 
-        window.requestAnimationFrame(() => this.step());
+        this.raf = window.requestAnimationFrame(() => this.step());
     }
 
     mouseDownHandler(e) {
@@ -147,7 +168,7 @@ class PixiCanvasClass {
         this.currPos = [e.offsetX + 1, e.offsetY];
         this.mouseDown = true;
         this.line = new PIXI.Graphics();
-        this.line.lineStyle(3, this.lineColor);
+        this.line.lineStyle(this.lineWidth, this.lineColor);
         this.app.stage.addChild(this.line);
 
         this.currArr.push([...this.lastPos]);
@@ -172,7 +193,7 @@ class PixiCanvasClass {
         if (this.doDraw) {
             if (this.line === null) {
                 this.line = new PIXI.Graphics();
-                this.line.lineStyle(3, this.lineColor);
+                this.line.lineStyle(this.lineWidth, this.lineColor);
                 this.app.stage.addChild(this.line);
             }
 
@@ -192,16 +213,38 @@ class PixiCanvasClass {
         }
     }
 
-    clearCanvas() {
-        this.savedArr = this.arr.map(subArr => subArr.map(tuple => [...tuple]));
-        console.log(this.savedArr)
-        this.createNewSketch();
-        this.doDraw = true;
+    getImage() {
+        if (!this.arr || !this.arr.length)
+            return;
+        let arr = this.arr;
+        console.log(`arr`, arr)
+        let line = new PIXI.Graphics();
+        line.lineStyle(this.lineWidth, this.lineColor);
+        this.app.stage.addChild(line);
+        for (let i = 0; i < arr.length; i++) {
+            for (let j = 0; j < arr[i].length - 1; j++) {
+                line.moveTo(...arr[i][j]);
+                line.lineTo(...arr[i][j + 1]);
+            }
+        }
+        const image = this.app.renderer.view.toDataURL("image/png", 1);
+        return image;
+    }
+
+    loadSketch() {
         this.app.stage.removeChildren();
+        console.log('aaaaaaa', this.arr)
+        this.savedArr = this.arr;
+        this.doDraw = true;
     }
 
     getDOM() {
-        this.app.stage.interactive = true;
+        if (!this.interactive) {
+            const img = document.createElement('img');
+            img.src = this.getImage();
+            return img;
+            return this.app.view;
+        }
 
         this.app.view.addEventListener('mousedown', this.mouseDownHandler.bind(this));
         this.app.view.addEventListener('mousemove', this.mouseMoveHandler.bind(this));
@@ -212,33 +255,44 @@ class PixiCanvasClass {
 
         const clearBtn = document.createElement('button');
         clearBtn.addEventListener('click', function (e) {
-            this.clearCanvas();
+            this.loadSketch();
         }.bind(this));
-        clearBtn.innerText = 'Clear'
+        clearBtn.innerText = 'Load Sketch'
+
+        const btn2 = document.createElement('button');
+        btn2.addEventListener('click', function (e) { this.createNewSketch() }.bind(this));
+        btn2.innerText = 'Save Sketch';
 
         const redrawBtn = document.createElement('button');
-        redrawBtn.addEventListener('click', function (e) { this.updateSketch() }.bind(this));
-        redrawBtn.innerText = 'Button';
+        redrawBtn.addEventListener('click', function (e) { this.testFetch() }.bind(this));
+        redrawBtn.innerText = 'Test Fetch';
 
         const container = document.createElement('div');
         container.appendChild(this.app.view);
         container.appendChild(clearBtn);
+        container.appendChild(btn2);
         container.appendChild(redrawBtn);
 
         return container;
     }
 
-    async setUser(user) {
+    setUser(user) {
         this.user = user;
+    }
+
+    setArr(points) {
+        if (points) this.arr = unflattenArr(points);
     }
 }
 
-const PixiCanvas = () => {
+const PixiCanvas = ({ interactive, sketchBook }) => {
+    const points = sketchBook?.Sketches[0].points;
     const user = useSelector(state => state.session.user);
-    const pixiCanvas = useRef(new PixiCanvasClass());
+    const pixiCanvas = useRef(new PixiCanvasClass(interactive));
     const pixiDOM = useRef(null);
 
     useEffect(() => {
+        pixiCanvas.current.setArr(points);
         pixiDOM.current.appendChild(pixiCanvas.current.getDOM());
         pixiCanvas.current.start();
     }, []);
@@ -248,7 +302,7 @@ const PixiCanvas = () => {
     }, [user]);
 
     return (
-        <div ref={pixiDOM} />
+        <div ref={pixiDOM}>id: {sketchBook?.id}</div>
     );
 }
 

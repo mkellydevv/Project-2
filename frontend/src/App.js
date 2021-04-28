@@ -6,6 +6,7 @@ import * as sessionActions from "./store/session";
 import Navigation from "./components/Navigation";
 
 import PixiCanvas from './components/PixiCanvas';
+import CanvasGrid from "./components/CanvasGrid";
 
 function App() {
     const dispatch = useDispatch();
@@ -26,7 +27,9 @@ function App() {
                     </Route>
                 </Switch>
             )}
-            <PixiCanvas />
+            <PixiCanvas interactive={false} />
+            <CanvasGrid />
+
         </>
     );
 }

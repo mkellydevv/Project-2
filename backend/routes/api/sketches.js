@@ -5,28 +5,28 @@ const { Sketch, SketchBook } = require('../../db/models');
 
 const router = express.Router();
 
-// Get all sketches
+// GET all sketches
 router.get('/', asyncHandler(async function(_req, res) {
     const sketches = await Sketch.getAllSketches();
     return res.json(sketches);
 }));
 
-// Get a sketch by id
+// GET a sketch by id
 router.get('/:id', asyncHandler(async function(req, res) {
     const sketch = await Sketch.getSketchById(req.params.id);
     return res.json(sketch);
 }));
 
-// Create a new sketch
+// POST a new sketch
 router.post('/', asyncHandler(async function(req, res) {
-    let { userId, sketchBookId, points, flagged, nsfw } = req.body;
-    if (!sketchBookId)
-        sketchBookId = await SketchBook.createNewSketchBook();
-    const sketch = await Sketch.createNewSketch({ userId, sketchBookId, points, flagged, nsfw });
+    let { userId, sketchBookId, points, nsfw } = req.body;
+    // Create a new sketch book if not passed a sketchbookId
+    if (!sketchBookId) sketchBookId = await SketchBook.createNewSketchBook();
+    const sketch = await Sketch.createNewSketch({ userId, sketchBookId, points, nsfw });
     return res.json(sketch);
 }));
 
-// Update a sketch
+// PATCH a sketch
 router.patch('/:id', asyncHandler(async function(req, res) {
     const sketch = await Sketch.updateSketch(req.params.id, req.body);
     return res.json(sketch);
