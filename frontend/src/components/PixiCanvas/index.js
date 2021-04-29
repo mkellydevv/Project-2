@@ -36,7 +36,7 @@ function unflattenArr(arr) {
     return retArr;
 }
 
-class PixiCanvasClass {
+export class PixiCanvasClass {
     constructor(interactive = false) {
         this.interactive = interactive;
 
@@ -293,48 +293,29 @@ class PixiCanvasClass {
     }
 }
 
-const PixiCanvas = forwardRef(({ interactive, sketchBook }, ref) => {
+const PixiCanvas = ({ buh, sketchBook }) => {
     const points = sketchBook?.Sketches[0].points;
     const user = useSelector(state => state.session.user);
-    const pixiCanvas = useRef(new PixiCanvasClass(interactive));
+    //const pixiCanvas = useRef(new PixiCanvasClass(interactive));
+    const pixiCanvas = useRef(buh);
     const pixiDOM = useRef(null);
 
     useEffect(() => {
-        pixiCanvas.current.setArr(points);
-        pixiDOM.current.appendChild(pixiCanvas.current.getDOM());
-        pixiCanvas.current.start();
+        if (!pixiCanvas?.current) return;
+        // pixiCanvas.current.setArr(points);
+        // pixiDOM.current.appendChild(pixiCanvas.current.getDOM());
+        // pixiCanvas.current.start();
     }, []);
 
     useEffect(() => {
+        if (!pixiCanvas?.current) return;
         pixiCanvas.current.setUser(user);
     }, [user]);
 
     return (
-        <div ref={pixiDOM}>id: {sketchBook?.id}</div>
+        <div >id: {sketchBook?.id}</div>
     );
-});
+};
 
-// ({ interactive, sketchBook }) => {
-//     const points = sketchBook?.Sketches[0].points;
-//     const user = useSelector(state => state.session.user);
-//     const pixiCanvas = useRef(new PixiCanvasClass(interactive));
-//     const pixiDOM = useRef(null);
-//     const myRef = useRef(ref);
-//     console.log('object', ref)
-
-//     useEffect(() => {
-//         pixiCanvas.current.setArr(points);
-//         pixiDOM.current.appendChild(pixiCanvas.current.getDOM());
-//         pixiCanvas.current.start();
-//     }, []);
-
-//     useEffect(() => {
-//         pixiCanvas.current.setUser(user);
-//     }, [user]);
-
-//     return (
-//         <div ref={pixiDOM}>id: {sketchBook?.id}</div>
-//     );
-// }
 
 export default PixiCanvas;

@@ -27,9 +27,7 @@ function App() {
                     </Route>
                 </Switch>
             )}
-            <PixiCanvas interactive={true} />
             <CanvasGrid />
-
         </>
     );
 }
