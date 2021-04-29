@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { csrfFetch } from '../../store/csrf';
-import * as PIXI from "pixi.js";
+import * as PIXI from "pixi.js-legacy";
 
 // Helper Functions
 
@@ -63,7 +63,7 @@ class PixiCanvasClass {
         this.i = 0;
         this.j = 0;
         this.linesPerUpdate = 1;
-        this.lineColor = '0x000000';
+        this.lineColor = 0x000000;
         this.user = null;
         this.mouseDown = false;
 
@@ -71,16 +71,19 @@ class PixiCanvasClass {
         this.frameRate = 1000 / 30;
         this.raf = null;
 
+        this.image = null;
+
         this.app = new PIXI.Application({
             width: this.w,
             height: this.h,
-            backgroundColor: '0xe1e3dd'
+            backgroundColor: 0xE1E3DD,
+            autoStart: true,
+            forceCanvas: true,
+            preserveDrawingBuffer: true
         });
 
         this.app.renderer.resize(this.w * this.scale, this.h * this.scale)
         this.app.stage.scale.set(this.scale, this.scale)
-
-        this.app.stage.interactive = true;
     }
 
     start() {
@@ -160,7 +163,12 @@ class PixiCanvasClass {
             }
         }
 
-        this.raf = window.requestAnimationFrame(() => this.step());
+        if (result === false)
+            console.log('falseeeeeee')
+        else
+            console.log('1')
+        if (result !== false)
+            this.raf = window.requestAnimationFrame(() => this.step());
     }
 
     mouseDownHandler(e) {
@@ -188,7 +196,6 @@ class PixiCanvasClass {
         this.line = null;
     };
 
-
     sketchRAF() {
         if (this.doDraw) {
             if (this.line === null) {
@@ -203,7 +210,11 @@ class PixiCanvasClass {
                     this.doDraw = false;
                     this.line = null;
                     this.i = this.j = 0;
-                    return;
+                    let id = this.raf;
+                    while (id--) {
+                        window.cancelAnimationFrame(id);
+                    }
+                    return false;
                 }
                 this.j = 0;
             }
@@ -217,18 +228,19 @@ class PixiCanvasClass {
         if (!this.arr || !this.arr.length)
             return;
         let arr = this.arr;
-        console.log(`arr`, arr)
         let line = new PIXI.Graphics();
         line.lineStyle(this.lineWidth, this.lineColor);
         this.app.stage.addChild(line);
+
         for (let i = 0; i < arr.length; i++) {
             for (let j = 0; j < arr[i].length - 1; j++) {
                 line.moveTo(...arr[i][j]);
                 line.lineTo(...arr[i][j + 1]);
             }
         }
-        const image = this.app.renderer.view.toDataURL("image/png", 1);
-        return image;
+        this.app.renderer.render(this.app.stage)
+        this.image = this.app.view.toDataURL("image/png", 1);
+        return this.image;
     }
 
     loadSketch() {
@@ -240,9 +252,9 @@ class PixiCanvasClass {
 
     getDOM() {
         if (!this.interactive) {
-            const img = document.createElement('img');
-            img.src = this.getImage();
-            return img;
+            //const img = document.createElement('img');
+            //img.src = this.getImage();
+            //return img;
             return this.app.view;
         }
 
@@ -250,8 +262,6 @@ class PixiCanvasClass {
         this.app.view.addEventListener('mousemove', this.mouseMoveHandler.bind(this));
         this.app.view.addEventListener('mouseup', this.mouseUpHandler.bind(this));
         this.app.view.addEventListener('mouseout', this.mouseUpHandler.bind(this));
-
-        this.app.start();
 
         const clearBtn = document.createElement('button');
         clearBtn.addEventListener('click', function (e) {

@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { getCovers } from "../../store/sketchBooks";
 import PixiCanvas from "../PixiCanvas";
 
+import './CanvasGrid.css';
+
 const CanvasGrid = () => {
     const dispatch = useDispatch();
     const sketchBooks = useSelector(state => state.sketchBooks);
