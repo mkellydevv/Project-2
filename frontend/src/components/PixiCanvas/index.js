@@ -87,7 +87,7 @@ export class PixiCanvasClass {
     }
 
     start() {
-        this.raf = window.requestAnimationFrame(() => this.step());
+        // this.raf = window.requestAnimationFrame(() => this.step());
         if (this.arr?.length) {
             this.loadSketch();
         }
@@ -164,10 +164,6 @@ export class PixiCanvasClass {
 
         if (result === false)
             console.log('falseeeeeee')
-        // else
-        //     console.log('1')
-        if (result !== false)
-            this.raf = window.requestAnimationFrame(() => this.step());
     }
 
     mouseDownHandler(e) {
@@ -209,11 +205,8 @@ export class PixiCanvasClass {
                     this.doDraw = false;
                     this.line = null;
                     this.i = this.j = 0;
-                    let id = this.raf;
-                    while (id--) {
-                        window.cancelAnimationFrame(id);
-                    }
-                    return false;
+                    this.image = this.image = this.app.view.toDataURL("image/png", 1);
+                    return true;
                 }
                 this.j = 0;
             }
@@ -221,6 +214,7 @@ export class PixiCanvasClass {
             this.line.moveTo(...this.savedArr[this.i][this.j]);
             this.line.lineTo(...this.savedArr[this.i][++this.j]);
         }
+        return false;
     }
 
     getImage() {
@@ -293,27 +287,25 @@ export class PixiCanvasClass {
     }
 }
 
-const PixiCanvas = ({ buh, sketchBook }) => {
-    const points = sketchBook?.Sketches[0].points;
+const PixiCanvas = () => {
     const user = useSelector(state => state.session.user);
-    //const pixiCanvas = useRef(new PixiCanvasClass(interactive));
-    const pixiCanvas = useRef(buh);
+    const pixiCanvas = useRef(new PixiCanvasClass(true));
     const pixiDOM = useRef(null);
 
     useEffect(() => {
-        if (!pixiCanvas?.current) return;
-        // pixiCanvas.current.setArr(points);
-        // pixiDOM.current.appendChild(pixiCanvas.current.getDOM());
-        // pixiCanvas.current.start();
+        if (!pixiCanvas || !pixiDOM) return;
+
+        pixiDOM.current.appendChild(pixiCanvas.current.getDOM());
+        pixiCanvas.current.start();
     }, []);
 
     useEffect(() => {
-        if (!pixiCanvas?.current) return;
+        if (!user || !pixiCanvas) return;
         pixiCanvas.current.setUser(user);
     }, [user]);
 
     return (
-        <div >id: {sketchBook?.id}</div>
+        <div ref={pixiDOM} />
     );
 };
 
