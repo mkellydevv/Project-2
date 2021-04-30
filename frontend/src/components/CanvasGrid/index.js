@@ -8,6 +8,7 @@ import { PixiCanvasClass } from "../PixiCanvas";
 import './CanvasGrid.css';
 
 const CanvasGrid = ({ sketchType }) => {
+    //console.log('canvas grid rendering')
     const { id: sketchBookId } = useParams();
     const dispatch = useDispatch();
     const history = useHistory();
@@ -17,8 +18,10 @@ const CanvasGrid = ({ sketchType }) => {
     const animCount = useRef(0);
     const pixiDOMRefs = [];
 
-    const sketchBooks = useSelector(state => state.sketchBooks);
-    const sketchBooksArr = Object.values(sketchBooks);
+    const data = useSelector(state => state.sketchBooks);
+    const { sketchBooksObj: sketchBooks, currSketchType } = data;
+    const sketchBooksArr = sketchBooks ? Object.values(sketchBooks) : [];
+
 
     let sketchArr = [];
     if (sketchType === 'sketch')
@@ -45,6 +48,7 @@ const CanvasGrid = ({ sketchType }) => {
     }, [dispatch])
 
     useEffect(() => {
+        if (currSketchType !== sketchType) return;
         if (!sketchBooks || Object.keys(sketchBooks).length === 0) return;
 
         if (sketchType === 'cover') {
@@ -96,6 +100,7 @@ const CanvasGrid = ({ sketchType }) => {
 
     useEffect(() => {
         if (!pix) return;
+        //console.log(pixiApps.current)
 
         const step = time => {
             const newPix = [];
@@ -129,14 +134,17 @@ const CanvasGrid = ({ sketchType }) => {
     }, [pix])
 
     useEffect(() => {
-        console.log('useEffect')
+        //console.log('useEffect')
     }, [])
 
     return (
         <>
             <h4>CanvasGrid</h4>
             {sketchType === 'cover' && sketchBooksArr?.map((sketchBook, i) => (
-                <div ref={pixiDOMRefs[i]} key={`sketchBookId-${sketchBook.id}`} onClick={e => history.push(`/sketchbook/${sketchBook.id}`)} />
+                <div ref={pixiDOMRefs[i]} key={`sketchBookId-${sketchBook.id}`} onClick={e => {
+                    console.log('clicked 1')
+                    history.push(`/sketchbook/${sketchBook.id}`)
+                }} />
             ))}
             {sketchType === 'sketch' && sketchArr?.map((sketch, i) => (
                 <div ref={pixiDOMRefs[i]} key={`sketchId-${sketch.id}`} onClick={e => console.log('click')} />

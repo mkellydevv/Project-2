@@ -32,7 +32,7 @@ function App() {
                         Front Page
                         <CanvasGrid sketchType={'cover'}/>
                     </Route>
-                    <Route path='/sketchbook/:id'  key={document.location.href}>
+                    <Route path='/sketchbook/:id' key={`/sketchbook/:id`}>
                         SketchBook
                         <CanvasGrid sketchType={'sketch'}/>
                     </Route>

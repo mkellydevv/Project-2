@@ -20,7 +20,8 @@ module.exports = (sequelize, DataTypes) => {
             },
             order: [['id', 'DESC']]
         });
-        return sketchBooks;
+        sketchBooks['sketchType'] = 'cover';
+        return { sketchBooks, sketchType: 'cover'};
     };
     SketchBook.getSketchBookSketches = async function (sketchBookId) {
         const sketches = await SketchBook.findAll({
@@ -31,7 +32,7 @@ module.exports = (sequelize, DataTypes) => {
                 }
             }
         })
-        return sketches;
+        return { sketches, sketchType: 'sketch'};
     }
     return SketchBook;
 };
