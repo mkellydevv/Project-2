@@ -5,8 +5,9 @@ import SignupFormPage from "./components/SignupFormPage";
 import * as sessionActions from "./store/session";
 import Navigation from "./components/Navigation";
 
-import PixiCanvas from './components/PixiCanvas';
+//import PixiCanvas from './components/PixiCanvas';
 import CanvasGrid from "./components/CanvasGrid";
+//import CanvasFeed from "./components/CanvasFeed";
 
 function App() {
     const dispatch = useDispatch();
@@ -17,6 +18,8 @@ function App() {
             .then(() => setIsLoaded(true));
     }, [dispatch]);
 
+
+
     return (
         <>
             <Navigation isLoaded={isLoaded} />
@@ -25,12 +28,19 @@ function App() {
                     <Route path="/signup">
                         <SignupFormPage />
                     </Route>
+                    <Route exact path='/' >
+                        Front Page
+                        <CanvasGrid sketchType={'cover'}/>
+                    </Route>
+                    <Route path='/sketchbook/:id'  key={document.location.href}>
+                        SketchBook
+                        <CanvasGrid sketchType={'sketch'}/>
+                    </Route>
                 </Switch>
             )}
-            <PixiCanvas />
-            <CanvasGrid />
         </>
     );
 }
+{/* <PixiCanvas /> */}
 
 export default App;

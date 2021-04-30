@@ -87,7 +87,10 @@ export class PixiCanvasClass {
     }
 
     start() {
-        // this.raf = window.requestAnimationFrame(() => this.step());
+        if (this.interactive) {
+            this.raf = window.requestAnimationFrame(() => this.step());
+        }
+
         if (this.arr?.length) {
             this.loadSketch();
         }
@@ -139,7 +142,6 @@ export class PixiCanvasClass {
     step() {
         const now = Date.now();
         const elapsed = now - this.timeStart;
-        let result = null;
 
         if (elapsed > this.frameRate) {
             this.timeStart = now - (elapsed % this.frameRate);
@@ -158,12 +160,10 @@ export class PixiCanvasClass {
                 }
             }
             else {
-                result = multiCall(this.sketchRAF.bind(this), this.linesPerUpdate);
+                multiCall(this.sketchRAF.bind(this), this.linesPerUpdate);
             }
         }
-
-        if (result === false)
-            console.log('falseeeeeee')
+        this.raf = window.requestAnimationFrame(() => this.step());
     }
 
     mouseDownHandler(e) {
@@ -244,9 +244,6 @@ export class PixiCanvasClass {
 
     getDOM() {
         if (!this.interactive) {
-            //const img = document.createElement('img');
-            //img.src = this.getImage();
-            //return img;
             return this.app.view;
         }
 

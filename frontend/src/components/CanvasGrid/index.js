@@ -1,12 +1,16 @@
 import { createRef, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { getCovers } from "../../store/sketchBooks";
+import { useHistory, useParams } from "react-router";
+import { Link } from "react-router-dom";
+import { getCovers, getSketches } from "../../store/sketchBooks";
 import { PixiCanvasClass } from "../PixiCanvas";
 
 import './CanvasGrid.css';
 
-const CanvasGrid = () => {
+const CanvasGrid = ({ sketchType }) => {
+    const { id: sketchBookId } = useParams();
     const dispatch = useDispatch();
+    const history = useHistory();
 
     const [pix, setPix] = useState([]);
     const pixiApps = useRef(pix);
@@ -16,38 +20,78 @@ const CanvasGrid = () => {
     const sketchBooks = useSelector(state => state.sketchBooks);
     const sketchBooksArr = Object.values(sketchBooks);
 
-    for (let i in sketchBooksArr)
-        pixiDOMRefs[i] = createRef();
+    let sketchArr = [];
+    if (sketchType === 'sketch')
+        sketchArr = Object.values(sketchBooks)[0]?.Sketches;
+
+    if (sketchType === 'cover') {
+        for (let i in sketchBooksArr)
+            pixiDOMRefs[i] = createRef();
+    }
+    else if (sketchType === 'sketch') {
+        for (let i in sketchArr)
+            pixiDOMRefs[i] = createRef();
+    }
 
     const requestRef = useRef(null);
 
     useEffect(() => {
-        dispatch(getCovers());
+        if (sketchType === 'cover')
+            dispatch(getCovers());
+        else if (sketchType === 'sketch' && sketchBookId)
+            dispatch(getSketches(sketchBookId));
+        else
+            console.log('Invalid CanvasGrid props, params, or queries');
     }, [dispatch])
 
     useEffect(() => {
-        if (!sketchBooks) return;
+        if (!sketchBooks || Object.keys(sketchBooks).length === 0) return;
 
-        const len = sketchBooksArr.length;
-        const newArr = new Array(len);
+        if (sketchType === 'cover') {
+            const len = sketchBooksArr.length;
+            const newArr = new Array(len);
 
-        for (let i = 0; i < len; i++) {
-            newArr[i] = new PixiCanvasClass(false);
-        };
-        pixiApps.current = newArr;
-        setPix(newArr);
-        animCount.current = len;
+            for (let i = 0; i < len; i++) {
+                newArr[i] = new PixiCanvasClass(false);
+            };
+            pixiApps.current = newArr;
+            setPix(newArr);
+            animCount.current = len;
 
-        for (let i = 0; i < len; i++) {
-            const pixiApp = pixiApps.current[i];
-            const sketchBook = sketchBooksArr[i];
+            for (let i = 0; i < len; i++) {
+                const pixiApp = pixiApps.current[i];
+                const sketchBook = sketchBooksArr[i];
 
-            pixiApp.setArr(sketchBook?.Sketches[0].points);
-            pixiDOMRefs[i].current?.appendChild(pixiApp.getDOM());
-            pixiApp.start();
+                pixiApp.setArr(sketchBook?.Sketches[0].points);
+                pixiDOMRefs[i].current?.appendChild(pixiApp.getDOM());
+                pixiApp.start();
+            }
+        }
+        else if (sketchType === 'sketch') {
+            const len = sketchArr.length;
+            const newArr = new Array(len);
+
+            for (let i = 0; i < len; i++) {
+                newArr[i] = new PixiCanvasClass(false);
+            };
+            pixiApps.current = newArr;
+            setPix(newArr);
+            animCount.current = len;
+
+            for (let i = 0; i < len; i++) {
+                const pixiApp = pixiApps.current[i];
+                const sketch = sketchArr[i];
+
+                pixiApp.setArr(sketch.points);
+                pixiDOMRefs[i].current?.appendChild(pixiApp.getDOM());
+                pixiApp.start();
+            }
+        }
+        else {
+            console.log('Something went wrong in the sketchBooks useEffect')
         }
 
-        return () => {};
+        return () => { };
     }, [sketchBooks])
 
     useEffect(() => {
@@ -84,11 +128,18 @@ const CanvasGrid = () => {
         return () => cancelAnimationFrame(requestRef.current);
     }, [pix])
 
+    useEffect(() => {
+        console.log('useEffect')
+    }, [])
+
     return (
         <>
             <h4>CanvasGrid</h4>
-            {sketchBooksArr?.map((sketchBook, i) => (
-                <div ref={pixiDOMRefs[i]} key={sketchBook.id} />
+            {sketchType === 'cover' && sketchBooksArr?.map((sketchBook, i) => (
+                <div ref={pixiDOMRefs[i]} key={`sketchBookId-${sketchBook.id}`} onClick={e => history.push(`/sketchbook/${sketchBook.id}`)} />
+            ))}
+            {sketchType === 'sketch' && sketchArr?.map((sketch, i) => (
+                <div ref={pixiDOMRefs[i]} key={`sketchId-${sketch.id}`} onClick={e => console.log('click')} />
             ))}
         </>
     )

@@ -6,8 +6,17 @@ const loadSketchBooks = list => ({
     list
 })
 
+
 export const getCovers = () => async dispatch => {
     const res = await fetch(`/api/sketchbooks`);
+    if (res.ok) {
+        const list = await res.json();
+        dispatch(loadSketchBooks(list));
+    }
+}
+
+export const getSketches = (id) => async dispatch => {
+    const res = await fetch(`/api/sketchBooks/${id}`);
     if (res.ok) {
         const list = await res.json();
         dispatch(loadSketchBooks(list));

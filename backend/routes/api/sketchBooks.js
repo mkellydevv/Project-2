@@ -11,4 +11,10 @@ router.get('/', asyncHandler(async (_req, res) => {
     return res.json(sketchBooks);
 }));
 
+// GET all the sketches from a sketchbook
+router.get('/:id', asyncHandler(async (req, res) => {
+    const sketchBooks = await SketchBook.getSketchBookSketches(req.params.id);
+    return res.json(sketchBooks);
+}));
+
 module.exports = router;

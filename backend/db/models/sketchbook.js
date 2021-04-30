@@ -22,5 +22,16 @@ module.exports = (sequelize, DataTypes) => {
         });
         return sketchBooks;
     };
+    SketchBook.getSketchBookSketches = async function (sketchBookId) {
+        const sketches = await SketchBook.findAll({
+            include: {
+                model: sequelize.models.Sketch,
+                where: {
+                    sketchBookId: Number(sketchBookId)
+                }
+            }
+        })
+        return sketches;
+    }
     return SketchBook;
 };
