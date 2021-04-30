@@ -18,8 +18,6 @@ function App() {
             .then(() => setIsLoaded(true));
     }, [dispatch]);
 
-
-
     return (
         <>
             <Navigation isLoaded={isLoaded} />
@@ -41,6 +39,5 @@ function App() {
         </>
     );
 }
-{/* <PixiCanvas /> */}
 
 export default App;

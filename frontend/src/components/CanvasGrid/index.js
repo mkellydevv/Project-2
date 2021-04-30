@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useHistory, useParams } from "react-router";
 import { Link } from "react-router-dom";
 import { getCovers, getSketches } from "../../store/sketchBooks";
-import { PixiCanvasClass } from "../PixiCanvas";
+import { PixiApp } from "../PixiCanvas";
 
 import './CanvasGrid.css';
 
@@ -56,7 +56,7 @@ const CanvasGrid = ({ sketchType }) => {
             const newArr = new Array(len);
 
             for (let i = 0; i < len; i++) {
-                newArr[i] = new PixiCanvasClass(false);
+                newArr[i] = new PixiApp(false);
             };
             pixiApps.current = newArr;
             setPix(newArr);
@@ -76,7 +76,7 @@ const CanvasGrid = ({ sketchType }) => {
             const newArr = new Array(len);
 
             for (let i = 0; i < len; i++) {
-                newArr[i] = new PixiCanvasClass(false);
+                newArr[i] = new PixiApp(false);
             };
             pixiApps.current = newArr;
             setPix(newArr);

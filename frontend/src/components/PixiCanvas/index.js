@@ -36,7 +36,7 @@ function unflattenArr(arr) {
     return retArr;
 }
 
-export class PixiCanvasClass {
+export class PixiApp {
     constructor(interactive = false) {
         this.interactive = interactive;
 
@@ -84,6 +84,13 @@ export class PixiCanvasClass {
 
         this.app.renderer.resize(this.w * this.scale, this.h * this.scale)
         this.app.stage.scale.set(this.scale, this.scale)
+
+        if (this.interactive) {
+            this.app.view.addEventListener('mousedown', this.mouseDownHandler.bind(this));
+            this.app.view.addEventListener('mousemove', this.mouseMoveHandler.bind(this));
+            this.app.view.addEventListener('mouseup', this.mouseUpHandler.bind(this));
+            this.app.view.addEventListener('mouseout', this.mouseUpHandler.bind(this));
+        }
     }
 
     start() {
@@ -106,6 +113,11 @@ export class PixiCanvasClass {
         let data = await res.json();
         console.log(data.points);
         this.arr = unflattenArr(data.points);
+    }
+
+    undo() {
+        this.arr.pop();
+        this.app.stage.removeChildAt(this.app.stage.children.length - 1);
     }
 
     async createNewSketch() {
@@ -208,6 +220,12 @@ export class PixiCanvasClass {
                     this.image = this.image = this.app.view.toDataURL("image/png", 1);
                     return true;
                 }
+
+                // Start a new line graphic
+                this.line = new PIXI.Graphics();
+                this.line.lineStyle(this.lineWidth, this.lineColor);
+                this.app.stage.addChild(this.line);
+
                 this.j = 0;
             }
 
@@ -243,36 +261,7 @@ export class PixiCanvasClass {
     }
 
     getDOM() {
-        if (!this.interactive) {
-            return this.app.view;
-        }
-
-        this.app.view.addEventListener('mousedown', this.mouseDownHandler.bind(this));
-        this.app.view.addEventListener('mousemove', this.mouseMoveHandler.bind(this));
-        this.app.view.addEventListener('mouseup', this.mouseUpHandler.bind(this));
-        this.app.view.addEventListener('mouseout', this.mouseUpHandler.bind(this));
-
-        const clearBtn = document.createElement('button');
-        clearBtn.addEventListener('click', function (e) {
-            this.loadSketch();
-        }.bind(this));
-        clearBtn.innerText = 'Load Sketch'
-
-        const btn2 = document.createElement('button');
-        btn2.addEventListener('click', function (e) { this.createNewSketch() }.bind(this));
-        btn2.innerText = 'Save Sketch';
-
-        const redrawBtn = document.createElement('button');
-        redrawBtn.addEventListener('click', function (e) { this.testFetch() }.bind(this));
-        redrawBtn.innerText = 'Test Fetch';
-
-        const container = document.createElement('div');
-        container.appendChild(this.app.view);
-        container.appendChild(clearBtn);
-        container.appendChild(btn2);
-        container.appendChild(redrawBtn);
-
-        return container;
+        return this.app.view;
     }
 
     setUser(user) {
@@ -284,9 +273,9 @@ export class PixiCanvasClass {
     }
 }
 
-const PixiCanvas = () => {
+const PixiCanvas = ({ buh }) => {
     const user = useSelector(state => state.session.user);
-    const pixiCanvas = useRef(new PixiCanvasClass(true));
+    const pixiCanvas = useRef(new PixiApp(true));
     const pixiDOM = useRef(null);
 
     useEffect(() => {
@@ -302,7 +291,16 @@ const PixiCanvas = () => {
     }, [user]);
 
     return (
-        <div ref={pixiDOM} />
+        <>
+            <div ref={pixiDOM} />
+            <button onClick={e => pixiCanvas.current.undo()}>Undo</button>
+            <button onClick={e => pixiCanvas.current.testFetch()}>Test Fetch</button>
+            <button onClick={e => pixiCanvas.current.loadSketch()}>Draw Test</button>
+            <button onClick={e => {
+                pixiCanvas.current.createNewSketch();
+                buh();
+            }}> Submit </button>
+        </>
     );
 };
 

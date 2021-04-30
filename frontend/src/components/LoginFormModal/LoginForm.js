@@ -11,12 +11,12 @@ function LoginForm() {
     const handleSubmit = (e) => {
         e.preventDefault();
         setErrors([]);
-        return dispatch(sessionActions.login({ credential, password })).catch(
-            async (res) => {
+        return dispatch(sessionActions.login({ credential, password }))
+            .catch(async (res) => {
                 const data = await res.json();
                 if (data && data.errors) setErrors(data.errors);
             }
-        );
+            );
     };
 
     return (
@@ -28,7 +28,7 @@ function LoginForm() {
             </ul>
             <label>
                 Username or Email
-        <input
+                <input
                     type="text"
                     value={credential}
                     onChange={(e) => setCredential(e.target.value)}
@@ -37,7 +37,7 @@ function LoginForm() {
             </label>
             <label>
                 Password
-        <input
+                <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
