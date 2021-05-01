@@ -1,9 +1,9 @@
 import { createRef, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useHistory, useParams } from "react-router";
-import { Link } from "react-router-dom";
-import { getCovers, getSketches } from "../../store/sketchBooks";
 import { PixiApp } from "../PixiCanvas";
+import { getCovers, getSketches } from "../../store/sketchBooks";
+import { showSketchModal, setSketchBookId } from '../../store/sketchModal';
 
 import './CanvasGrid.css';
 
@@ -20,42 +20,44 @@ const CanvasGrid = ({ sketchType }) => {
 
     const data = useSelector(state => state.sketchBooks);
     const { sketchBooksObj: sketchBooks, currSketchType } = data;
-    const sketchBooksArr = sketchBooks ? Object.values(sketchBooks).reverse() : [];
-
-
+    let sketchBooksArr = [];
     let sketchArr = [];
-    if (sketchType === 'sketch')
-        sketchArr = Object.values(sketchBooks)[0]?.Sketches;
 
     if (sketchType === 'cover') {
+        sketchBooksArr = sketchBooks ? Object.values(sketchBooks).reverse() : [];
         for (let i in sketchBooksArr)
             pixiDOMRefs[i] = createRef();
     }
     else if (sketchType === 'sketch') {
+        sketchArr = sketchBooks ? Object.values(sketchBooks)[0]?.Sketches : [];
         for (let i in sketchArr)
             pixiDOMRefs[i] = createRef();
     }
 
     const requestRef = useRef(null);
 
-    const refreshCovers = () => {
-        dispatch(getCovers());
+    const getSketchBookData = () => {
+        if (sketchType === 'cover') {
+            dispatch(getCovers());
+            console.log('dispatch get covers')
+        }
+        else if (sketchType === 'sketch' && sketchBookId){
+            dispatch(getSketches(sketchBookId));
+            console.log('dispatch get Sketches')
+        }
+        else
+            console.log('Invalid CanvasGrid props, params, or queries');
     }
 
     useEffect(() => {
         let interval = setInterval(() => {
-            refreshCovers();
+            getSketchBookData();
         }, 1000 * refreshTime);
         return () => { clearInterval(interval) };
     }, [])
 
     useEffect(() => {
-        if (sketchType === 'cover')
-            dispatch(getCovers());
-        else if (sketchType === 'sketch' && sketchBookId)
-            dispatch(getSketches(sketchBookId));
-        else
-            console.log('Invalid CanvasGrid props, params, or queries');
+        getSketchBookData();
     }, [dispatch])
 
     useEffect(() => {
@@ -88,8 +90,10 @@ const CanvasGrid = ({ sketchType }) => {
             const len = sketchArr.length;
             const newArr = new Array(len);
 
+            console.log(`sketchBooks`, Object.values(sketchBooks)[0].id)
+
             for (let i = 0; i < len; i++) {
-                newArr[i] = new PixiApp(false);
+                newArr[i] = new PixiApp(false, Object.values(sketchBooks)[0].id);
             };
             pixiApps.current = newArr;
             setPix(newArr);
@@ -100,7 +104,8 @@ const CanvasGrid = ({ sketchType }) => {
                 const sketch = sketchArr[i];
 
                 pixiApp.setArr(sketch.points);
-                pixiDOMRefs[i].current?.appendChild(pixiApp.getDOM());
+                if (pixiDOMRefs[i].current?.children.length === 0)
+                    pixiDOMRefs[i].current?.appendChild(pixiApp.getDOM());
                 pixiApp.start();
             }
         }
@@ -150,20 +155,25 @@ const CanvasGrid = ({ sketchType }) => {
         //console.log('useEffect')
     }, [])
 
-
+    const showModal = (val) => {
+        dispatch(showSketchModal(val));
+    }
 
     return (
         <>
             <h4>CanvasGrid</h4>
-            <button onClick={e => refreshCovers()}>Refresh</button>
+            <button onClick={e => getSketchBookData()}>Refresh</button>
             {sketchType === 'cover' && sketchBooksArr?.map((sketchBook, i) => (
                 <div ref={pixiDOMRefs[i]} key={`sketchBookId-${sketchBook.id}`} onClick={e => {
-                    console.log('clicked 1')
+                    dispatch(setSketchBookId(sketchBook.id));
                     history.push(`/sketchbook/${sketchBook.id}`)
                 }} />
             ))}
             {sketchType === 'sketch' && sketchArr?.map((sketch, i) => (
-                <div ref={pixiDOMRefs[i]} key={`sketchId-${sketch.id}`} onClick={e => console.log('click')} />
+                <div ref={pixiDOMRefs[i]} key={`sketchId-${sketch.id}`} onClick={e => {
+                    dispatch(setSketchBookId(sketchBookId));
+                    showModal(true);
+                }} />
             ))}
         </>
     )

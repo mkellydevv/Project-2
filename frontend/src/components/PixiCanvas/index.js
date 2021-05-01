@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { csrfFetch } from '../../store/csrf';
-import { getCovers } from '../../store/sketchBooks';
+import { getCovers, getSketches } from '../../store/sketchBooks';
 import * as PIXI from "pixi.js-legacy";
-import { hideSketchModal } from '../../store/sketchModal';
+import { showSketchModal } from '../../store/sketchModal';
 
 // Helper Functions
 
@@ -39,7 +39,7 @@ function unflattenArr(arr) {
 }
 
 export class PixiApp {
-    constructor(interactive = false) {
+    constructor(interactive = false, sketchBookId = '') {
         this.interactive = interactive;
 
         if (this.interactive) {
@@ -51,7 +51,7 @@ export class PixiApp {
             this.lineWidth = 5;
         }
 
-        this.sketchBookId = '';
+        this.sketchBookId = sketchBookId;
 
         this.w = 800;
         this.h = 600;
@@ -274,36 +274,53 @@ export class PixiApp {
     setArr(points) {
         if (points) this.arr = unflattenArr(points);
     }
+
+    setSketchBookId(id) {
+        this.sketchBookId = id;
+    }
 }
 
 const PixiCanvas = () => {
     const user = useSelector(state => state.session.user);
-    const pixiCanvas = useRef(new PixiApp(true));
+    const { sketchBookId } = useSelector(state => state.sketchModal);
+    const pixiApp = useRef(new PixiApp(true, sketchBookId));
     const pixiDOM = useRef(null);
     const dispatch = useDispatch();
 
     useEffect(() => {
-        if (!pixiCanvas || !pixiDOM) return;
+        if (!pixiApp || !pixiDOM) return;
 
-        pixiDOM.current.appendChild(pixiCanvas.current.getDOM());
-        pixiCanvas.current.start();
+        pixiDOM.current.appendChild(pixiApp.current.getDOM());
+        pixiApp.current.start();
     }, []);
 
     useEffect(() => {
-        if (!user || !pixiCanvas) return;
-        pixiCanvas.current.setUser(user);
+        if (!sketchBookId || !pixiApp) return;
+        console.log(`sketchBookId`, sketchBookId)
+        pixiApp.current.setSketchBookId(sketchBookId);
+    }, [sketchBookId]);
+
+    useEffect(() => {
+        if (!user || !pixiApp) return;
+        pixiApp.current.setUser(user);
     }, [user]);
 
     return (
         <>
             <div ref={pixiDOM} />
-            <button onClick={e => pixiCanvas.current.undo()}>Undo</button>
-            <button onClick={e => pixiCanvas.current.testFetch()}>Test Fetch</button>
-            <button onClick={e => pixiCanvas.current.loadSketch()}>Draw Test</button>
+            <button onClick={e => dispatch(showSketchModal(false))}>Close</button>
+            <button onClick={e => pixiApp.current.undo()}>Undo</button>
+            <button onClick={e => pixiApp.current.testFetch()}>Test Fetch</button>
+            <button onClick={e => pixiApp.current.loadSketch()}>Draw Test</button>
             <button onClick={async e => {
-                dispatch(hideSketchModal());
-                await pixiCanvas.current.createNewSketch();
-                dispatch(getCovers());
+                dispatch(showSketchModal(false));
+                await pixiApp.current.createNewSketch();
+                if (sketchBookId) {
+                    dispatch(getSketches(sketchBookId));
+                    console.log('dispatch get sketches')
+                }
+                else
+                    dispatch(getCovers());
             }}> Submit </button>
         </>
     );
