@@ -17,8 +17,7 @@ module.exports = (sequelize, DataTypes) => {
                 model: sequelize.models.Sketch,
                 limit: 1,
                 attributes: ['points']
-            },
-            order: [['id', 'DESC']]
+            }
         });
         sketchBooks['sketchType'] = 'cover';
         return { sketchBooks, sketchType: 'cover'};

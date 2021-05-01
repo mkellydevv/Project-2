@@ -20,7 +20,7 @@ const CanvasGrid = ({ sketchType }) => {
 
     const data = useSelector(state => state.sketchBooks);
     const { sketchBooksObj: sketchBooks, currSketchType } = data;
-    const sketchBooksArr = sketchBooks ? Object.values(sketchBooks) : [];
+    const sketchBooksArr = sketchBooks ? Object.values(sketchBooks).reverse() : [];
 
 
     let sketchArr = [];
@@ -38,6 +38,10 @@ const CanvasGrid = ({ sketchType }) => {
 
     const requestRef = useRef(null);
 
+    const refreshCovers = () => {
+        dispatch(getCovers());
+    }
+
     useEffect(() => {
         if (sketchType === 'cover')
             dispatch(getCovers());
@@ -50,6 +54,8 @@ const CanvasGrid = ({ sketchType }) => {
     useEffect(() => {
         if (currSketchType !== sketchType) return;
         if (!sketchBooks || Object.keys(sketchBooks).length === 0) return;
+
+        console.log(`sketchBooksArr`, sketchBooksArr)
 
         if (sketchType === 'cover') {
             const len = sketchBooksArr.length;
@@ -66,8 +72,10 @@ const CanvasGrid = ({ sketchType }) => {
                 const pixiApp = pixiApps.current[i];
                 const sketchBook = sketchBooksArr[i];
 
+
                 pixiApp.setArr(sketchBook?.Sketches[0].points);
-                pixiDOMRefs[i].current?.appendChild(pixiApp.getDOM());
+                if (pixiDOMRefs[i].current?.children.length === 0)
+                    pixiDOMRefs[i].current?.appendChild(pixiApp.getDOM());
                 pixiApp.start();
             }
         }
@@ -140,6 +148,7 @@ const CanvasGrid = ({ sketchType }) => {
     return (
         <>
             <h4>CanvasGrid</h4>
+            <button onClick={e => refreshCovers()}>Refresh</button>
             {sketchType === 'cover' && sketchBooksArr?.map((sketchBook, i) => (
                 <div ref={pixiDOMRefs[i]} key={`sketchBookId-${sketchBook.id}`} onClick={e => {
                     console.log('clicked 1')
