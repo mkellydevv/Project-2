@@ -1,7 +1,9 @@
-import React, { useEffect, useRef, forwardRef } from 'react';
-import { useSelector } from 'react-redux';
+import React, { useEffect, useRef } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { csrfFetch } from '../../store/csrf';
+import { getCovers } from '../../store/sketchBooks';
 import * as PIXI from "pixi.js-legacy";
+import { hideSketchModal } from '../../store/sketchModal';
 
 // Helper Functions
 
@@ -136,6 +138,7 @@ export class PixiApp {
         });
         let data = await res.json();
         console.log(data);
+        return data;
     }
 
     async updateSketch() {
@@ -273,10 +276,11 @@ export class PixiApp {
     }
 }
 
-const PixiCanvas = ({ buh }) => {
+const PixiCanvas = () => {
     const user = useSelector(state => state.session.user);
     const pixiCanvas = useRef(new PixiApp(true));
     const pixiDOM = useRef(null);
+    const dispatch = useDispatch();
 
     useEffect(() => {
         if (!pixiCanvas || !pixiDOM) return;
@@ -296,9 +300,10 @@ const PixiCanvas = ({ buh }) => {
             <button onClick={e => pixiCanvas.current.undo()}>Undo</button>
             <button onClick={e => pixiCanvas.current.testFetch()}>Test Fetch</button>
             <button onClick={e => pixiCanvas.current.loadSketch()}>Draw Test</button>
-            <button onClick={e => {
-                pixiCanvas.current.createNewSketch();
-                buh();
+            <button onClick={async e => {
+                dispatch(hideSketchModal());
+                await pixiCanvas.current.createNewSketch();
+                dispatch(getCovers());
             }}> Submit </button>
         </>
     );

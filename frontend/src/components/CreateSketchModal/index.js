@@ -1,20 +1,27 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { Modal } from '../../context/Modal';
 import PixiCanvas from '../PixiCanvas';
+import { showSketchModal, hideSketchModal } from '../../store/sketchModal';
 
 function CreateSketchModal() {
-    const [showModal, setShowModal] = useState(false);
+    const { modalState } = useSelector(state => state.sketchModal);
+    const dispatch = useDispatch();
 
-    const buh = () => {
-        setShowModal(false)
+    const showModal = () => {
+        dispatch(showSketchModal());
+    }
+
+    const hideModal = () => {
+        dispatch(hideSketchModal());
     }
 
     return (
         <>
-            <button onClick={() => setShowModal(true)}>New Sketch!</button>
-            {showModal && (
-                <Modal onClose={() => setShowModal(false)}>
-                    <PixiCanvas buh={buh} />
+            <button onClick={() => showModal()}>New Sketch!</button>
+            {modalState && (
+                <Modal onClose={() => hideModal()}>
+                    <PixiCanvas />
                 </Modal>
             )}
         </>

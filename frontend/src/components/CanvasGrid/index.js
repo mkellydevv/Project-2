@@ -8,7 +8,7 @@ import { PixiApp } from "../PixiCanvas";
 import './CanvasGrid.css';
 
 const CanvasGrid = ({ sketchType }) => {
-    //console.log('canvas grid rendering')
+    const refreshTime = 1000; // In seconds
     const { id: sketchBookId } = useParams();
     const dispatch = useDispatch();
     const history = useHistory();
@@ -43,6 +43,13 @@ const CanvasGrid = ({ sketchType }) => {
     }
 
     useEffect(() => {
+        let interval = setInterval(() => {
+            refreshCovers();
+        }, 1000 * refreshTime);
+        return () => { clearInterval(interval) };
+    }, [])
+
+    useEffect(() => {
         if (sketchType === 'cover')
             dispatch(getCovers());
         else if (sketchType === 'sketch' && sketchBookId)
@@ -54,8 +61,6 @@ const CanvasGrid = ({ sketchType }) => {
     useEffect(() => {
         if (currSketchType !== sketchType) return;
         if (!sketchBooks || Object.keys(sketchBooks).length === 0) return;
-
-        console.log(`sketchBooksArr`, sketchBooksArr)
 
         if (sketchType === 'cover') {
             const len = sketchBooksArr.length;
@@ -144,6 +149,8 @@ const CanvasGrid = ({ sketchType }) => {
     useEffect(() => {
         //console.log('useEffect')
     }, [])
+
+
 
     return (
         <>
