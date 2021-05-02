@@ -109,8 +109,10 @@ export class PixiApp {
 
     startSketchDraw() {
         this.app.stage.removeChildren();
-        this.savedArr = this.arr;
+        this.i = this.j = 0;
+        this.line = null;
         this.doDraw = true;
+        this.savedArr = this.arr;
     }
 
     async testFetch(id = 13) {
@@ -305,6 +307,10 @@ export class PixiApp {
 const PixiCanvas = () => {
     const user = useSelector(state => state.session.user);
     const { sketchBookId, sketchData } = useSelector(state => state.sketchModal);
+    const { sketchBooksObj: sketchBooks, currSketchType } = useSelector(state => state.sketchBooks);
+    const sketches = useRef([]);
+    const sketchIndex = useRef(null);
+
     const pixiApp = useRef(new PixiApp(true, sketchBookId));
     const pixiDOM = useRef(null);
     const dispatch = useDispatch();
@@ -317,6 +323,13 @@ const PixiCanvas = () => {
     }, []);
 
     useEffect(() => {
+        if (!sketchBooks) return;
+
+        sketches.current = Object.values(sketchBooks)[0].Sketches;
+    }, [sketchBooks]);
+
+
+    useEffect(() => {
         if (!sketchBookId || !pixiApp) return;
         console.log(`sketchBookId`, sketchBookId)
         pixiApp.current.setSketchBookId(sketchBookId);
@@ -324,7 +337,8 @@ const PixiCanvas = () => {
 
     useEffect(() => {
         if (!sketchData || !pixiApp) return;
-        console.log(`sketchData`, sketchData)
+        sketchIndex.current = sketches.current.findIndex(sketch => sketch.id === sketchData.id);
+        console.log(`sketchData`, sketchData, 'sketchIndex.current', sketchIndex.current);
         pixiApp.current.setParentId(sketchData.id);
         pixiApp.current.setArr(sketchData.points);
         pixiApp.current.startSketchDraw();
@@ -335,10 +349,29 @@ const PixiCanvas = () => {
         pixiApp.current.setUser(user);
     }, [user]);
 
+    const prevSketch = () => {
+        if (sketchIndex.current === 0) return;
+        sketchIndex.current -= 1;
+        console.log(`prev sketch`, sketches, sketchIndex, sketches.current[sketchIndex.current])
+        dispatch(setSketchData(sketches.current[sketchIndex.current]));
+    }
+
+    const nextSketch = () => {
+        if (sketchIndex.current >= sketches.current.length - 1) return;
+        sketchIndex.current += 1;
+        console.log(`next sketch`, sketches, sketchIndex, sketches.current[sketchIndex.current])
+        dispatch(setSketchData(sketches.current[sketchIndex.current]));
+    }
+
     return (
         <>
             <div ref={pixiDOM} />
-            <button onClick={e => dispatch(showSketchModal(false))}>Close</button>
+            <button onClick={e => {
+                dispatch(showSketchModal(false));
+                dispatch(setSketchData(null));
+            }}>Close</button>
+            <button onClick={e => prevSketch()}>Prev</button>
+            <button onClick={e => nextSketch()}>Next</button>
             <button onClick={e => pixiApp.current.undo()}>Undo</button>
             <button onClick={e => pixiApp.current.testFetch()}>Test Fetch</button>
             <button onClick={e => pixiApp.current.startSketchDraw()}>Draw Test</button>
@@ -355,7 +388,8 @@ const PixiCanvas = () => {
             }}> Submit </button>
         </>
     );
-};
+}
+
 
 
 export default PixiCanvas;
