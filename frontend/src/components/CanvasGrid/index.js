@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useHistory, useParams } from "react-router";
 import { PixiApp } from "../PixiCanvas";
 import { getCovers, getSketches } from "../../store/sketchBooks";
-import { showSketchModal, setSketchBookId, setParentId } from '../../store/sketchModal';
+import { showSketchModal, setSketchBookId, setSketchData } from '../../store/sketchModal';
 
 import './CanvasGrid.css';
 
@@ -134,7 +134,7 @@ const CanvasGrid = ({ sketchType }) => {
                         const imgEle = document.createElement('img');
                         imgEle.src = imageSrc;
                         pixiDOMRefs[i].current?.removeChild(pixiDOMRefs[i].current.children[0]);
-                        pixiDOMRefs[i].current?.appendChild(imgEle)
+                        pixiDOMRefs[i].current?.appendChild(imgEle);
                     }
                 }
                 else {
@@ -173,7 +173,7 @@ const CanvasGrid = ({ sketchType }) => {
             {sketchType === 'sketch' && sketchArr?.map((sketch, i) => (
                 <div ref={pixiDOMRefs[i]} key={`sketchId-${sketch.id}`} onClick={e => {
                     dispatch(setSketchBookId(sketchBookId));
-                    dispatch(setParentId(sketch.id));
+                    dispatch(setSketchData(sketch));
                     dispatch(showSketchModal(true));
                 }} />
             ))}

@@ -2,8 +2,10 @@ import React, { useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { csrfFetch } from '../../store/csrf';
 import { getCovers, getSketches } from '../../store/sketchBooks';
-import { showSketchModal, setParentId } from '../../store/sketchModal';
+import { showSketchModal, setSketchData } from '../../store/sketchModal';
 import * as PIXI from "pixi.js-legacy";
+
+const PADDING_OFFSET = 16;
 
 // Helper Functions
 
@@ -100,9 +102,15 @@ export class PixiApp {
             this.raf = window.requestAnimationFrame(() => this.step());
         }
 
-        if (this.arr?.length) {
-            this.loadSketch();
+        if (this.arr.length) {
+            this.startSketchDraw();
         }
+    }
+
+    startSketchDraw() {
+        this.app.stage.removeChildren();
+        this.savedArr = this.arr;
+        this.doDraw = true;
     }
 
     async testFetch(id = 13) {
@@ -159,13 +167,16 @@ export class PixiApp {
         const now = Date.now();
         const elapsed = now - this.timeStart;
 
+        if (!this.mouseDown)
+            multiCall(this.sketchRAF.bind(this), this.linesPerUpdate);
+
         if (elapsed > this.frameRate) {
             this.timeStart = now - (elapsed % this.frameRate);
             if (this.mouseDown) {
-                let xThresh = Math.abs(this.lastPos[0] - this.currPos[0]);
-                let yThresh = Math.abs(this.lastPos[1] - this.currPos[1]);
+                const xThresh = Math.abs(this.lastPos[0] - this.currPos[0]);
+                const yThresh = Math.abs(this.lastPos[1] - this.currPos[1]);
 
-                if (xThresh > 3 || yThresh > 3) {
+                if (xThresh > 2 || yThresh > 2) {
 
                     this.line.moveTo(...this.lastPos);
                     this.line.lineTo(...this.currPos);
@@ -175,16 +186,18 @@ export class PixiApp {
                     this.currArr.push([...this.currPos]);
                 }
             }
-            else {
-                multiCall(this.sketchRAF.bind(this), this.linesPerUpdate);
-            }
         }
+
         this.raf = window.requestAnimationFrame(() => this.step());
     }
 
     mouseDownHandler(e) {
-        this.lastPos = [e.offsetX, e.offsetY];
-        this.currPos = [e.offsetX + 1, e.offsetY];
+        if (this.doDraw) {
+            this.renderImage();
+            return;
+        }
+        this.lastPos = [e.offsetX - PADDING_OFFSET, e.offsetY - PADDING_OFFSET];
+        this.currPos = [...this.lastPos];
         this.mouseDown = true;
         this.line = new PIXI.Graphics();
         this.line.lineStyle(this.lineWidth, this.lineColor);
@@ -195,7 +208,7 @@ export class PixiApp {
     mouseMoveHandler(e) {
         if (!this.mouseDown) return;
 
-        this.currPos = [e.offsetX, e.offsetY];
+        this.currPos = [e.offsetX - PADDING_OFFSET, e.offsetY - PADDING_OFFSET];
     };
     mouseUpHandler(e) {
         if (!this.mouseDown) return
@@ -240,28 +253,28 @@ export class PixiApp {
     }
 
     renderImage() {
-        if (!this.arr || !this.arr.length)
-            return;
-        let arr = this.arr;
-        let line = new PIXI.Graphics();
-        line.lineStyle(this.lineWidth, this.lineColor);
-        this.app.stage.addChild(line);
+        if (!this.arr || !this.arr.length) return;
 
-        for (let i = 0; i < arr.length; i++) {
-            for (let j = 0; j < arr[i].length - 1; j++) {
-                line.moveTo(...arr[i][j]);
-                line.lineTo(...arr[i][j + 1]);
-            }
-        }
-        this.app.renderer.render(this.app.stage)
-        this.image = this.app.view.toDataURL("image/png", 1);
-        return this.image;
-    }
-
-    loadSketch() {
         this.app.stage.removeChildren();
-        this.savedArr = this.arr;
-        this.doDraw = true;
+
+        for (let i = 0; i < this.arr.length; i++) {
+            this.line = new PIXI.Graphics();
+            this.line.lineStyle(this.lineWidth, this.lineColor);
+            this.app.stage.addChild(this.line);
+
+            for (let j = 0; j < this.arr[i].length - 1; j++) {
+                this.line.moveTo(...this.arr[i][j]);
+                this.line.lineTo(...this.arr[i][j + 1]);
+            }
+
+            this.line = null;
+        }
+
+        this.doDraw = false;
+        this.i = this.j = 0;
+
+        this.app.renderer.render(this.app.stage);
+        this.image = this.app.view.toDataURL("image/png", 1);
     }
 
     getDOM() {
@@ -275,7 +288,6 @@ export class PixiApp {
     setUser(user) {
         this.user = user;
     }
-
 
     setSketchBookId(id) {
         this.sketchBookId = id;
@@ -292,7 +304,7 @@ export class PixiApp {
 
 const PixiCanvas = () => {
     const user = useSelector(state => state.session.user);
-    const { sketchBookId, parentId } = useSelector(state => state.sketchModal);
+    const { sketchBookId, sketchData } = useSelector(state => state.sketchModal);
     const pixiApp = useRef(new PixiApp(true, sketchBookId));
     const pixiDOM = useRef(null);
     const dispatch = useDispatch();
@@ -311,10 +323,12 @@ const PixiCanvas = () => {
     }, [sketchBookId]);
 
     useEffect(() => {
-        if (!parentId || !pixiApp) return;
-        console.log(`parentId`, parentId)
-        pixiApp.current.setParentId(parentId);
-    }, [parentId]);
+        if (!sketchData || !pixiApp) return;
+        console.log(`sketchData`, sketchData)
+        pixiApp.current.setParentId(sketchData.id);
+        pixiApp.current.setArr(sketchData.points);
+        pixiApp.current.startSketchDraw();
+    }, [sketchData]);
 
     useEffect(() => {
         if (!user || !pixiApp) return;
@@ -327,10 +341,10 @@ const PixiCanvas = () => {
             <button onClick={e => dispatch(showSketchModal(false))}>Close</button>
             <button onClick={e => pixiApp.current.undo()}>Undo</button>
             <button onClick={e => pixiApp.current.testFetch()}>Test Fetch</button>
-            <button onClick={e => pixiApp.current.loadSketch()}>Draw Test</button>
+            <button onClick={e => pixiApp.current.startSketchDraw()}>Draw Test</button>
             <button onClick={async e => {
                 dispatch(showSketchModal(false));
-                dispatch(setParentId(''));
+                dispatch(setSketchData(null));
                 await pixiApp.current.createNewSketch();
                 if (sketchBookId) {
                     dispatch(getSketches(sketchBookId));
