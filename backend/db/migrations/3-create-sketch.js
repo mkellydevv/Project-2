@@ -43,6 +43,15 @@ module.exports = {
                     }
                 }
             },
+            parentId: {
+                type: Sequelize.INTEGER,
+                defaultValue: null,
+                references: {
+                    model: {
+                        tableName: 'Sketches'
+                    }
+                }
+            },
             createdAt: {
                 allowNull: false,
                 type: Sequelize.DATE,

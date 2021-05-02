@@ -2,8 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { csrfFetch } from '../../store/csrf';
 import { getCovers, getSketches } from '../../store/sketchBooks';
+import { showSketchModal, setParentId } from '../../store/sketchModal';
 import * as PIXI from "pixi.js-legacy";
-import { showSketchModal } from '../../store/sketchModal';
 
 // Helper Functions
 
@@ -39,8 +39,10 @@ function unflattenArr(arr) {
 }
 
 export class PixiApp {
-    constructor(interactive = false, sketchBookId = '') {
+    constructor(interactive = false, sketchBookId = '', parentId = null) {
         this.interactive = interactive;
+        this.sketchBookId = sketchBookId;
+        this.parentId = parentId;
 
         if (this.interactive) {
             this.scale = 1;
@@ -50,8 +52,6 @@ export class PixiApp {
             this.scale = .25;
             this.lineWidth = 5;
         }
-
-        this.sketchBookId = sketchBookId;
 
         this.w = 800;
         this.h = 600;
@@ -129,6 +129,7 @@ export class PixiApp {
             body: JSON.stringify({
                 userId: this.user.id,
                 sketchBookId: this.sketchBookId,
+                parentId: this.parentId,
                 points: flattenArr(this.savedArr),
                 nsfw: false
             }),
@@ -238,7 +239,7 @@ export class PixiApp {
         return false;
     }
 
-    getImage() {
+    renderImage() {
         if (!this.arr || !this.arr.length)
             return;
         let arr = this.arr;
@@ -267,22 +268,31 @@ export class PixiApp {
         return this.app.view;
     }
 
+    getImage() {
+        return this.image;
+    }
+
     setUser(user) {
         this.user = user;
+    }
+
+
+    setSketchBookId(id) {
+        this.sketchBookId = id;
+    }
+
+    setParentId(id) {
+        this.parentId = id;
     }
 
     setArr(points) {
         if (points) this.arr = unflattenArr(points);
     }
-
-    setSketchBookId(id) {
-        this.sketchBookId = id;
-    }
 }
 
 const PixiCanvas = () => {
     const user = useSelector(state => state.session.user);
-    const { sketchBookId } = useSelector(state => state.sketchModal);
+    const { sketchBookId, parentId } = useSelector(state => state.sketchModal);
     const pixiApp = useRef(new PixiApp(true, sketchBookId));
     const pixiDOM = useRef(null);
     const dispatch = useDispatch();
@@ -301,6 +311,12 @@ const PixiCanvas = () => {
     }, [sketchBookId]);
 
     useEffect(() => {
+        if (!parentId || !pixiApp) return;
+        console.log(`parentId`, parentId)
+        pixiApp.current.setParentId(parentId);
+    }, [parentId]);
+
+    useEffect(() => {
         if (!user || !pixiApp) return;
         pixiApp.current.setUser(user);
     }, [user]);
@@ -314,6 +330,7 @@ const PixiCanvas = () => {
             <button onClick={e => pixiApp.current.loadSketch()}>Draw Test</button>
             <button onClick={async e => {
                 dispatch(showSketchModal(false));
+                dispatch(setParentId(''));
                 await pixiApp.current.createNewSketch();
                 if (sketchBookId) {
                     dispatch(getSketches(sketchBookId));

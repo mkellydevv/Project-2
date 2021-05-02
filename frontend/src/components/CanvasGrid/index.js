@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useHistory, useParams } from "react-router";
 import { PixiApp } from "../PixiCanvas";
 import { getCovers, getSketches } from "../../store/sketchBooks";
-import { showSketchModal, setSketchBookId } from '../../store/sketchModal';
+import { showSketchModal, setSketchBookId, setParentId } from '../../store/sketchModal';
 
 import './CanvasGrid.css';
 
@@ -18,8 +18,7 @@ const CanvasGrid = ({ sketchType }) => {
     const animCount = useRef(0);
     const pixiDOMRefs = [];
 
-    const data = useSelector(state => state.sketchBooks);
-    const { sketchBooksObj: sketchBooks, currSketchType } = data;
+    const { sketchBooksObj: sketchBooks, currSketchType } = useSelector(state => state.sketchBooks);
     let sketchBooksArr = [];
     let sketchArr = [];
 
@@ -41,7 +40,7 @@ const CanvasGrid = ({ sketchType }) => {
             dispatch(getCovers());
             console.log('dispatch get covers')
         }
-        else if (sketchType === 'sketch' && sketchBookId){
+        else if (sketchType === 'sketch' && sketchBookId) {
             dispatch(getSketches(sketchBookId));
             console.log('dispatch get Sketches')
         }
@@ -79,10 +78,12 @@ const CanvasGrid = ({ sketchType }) => {
                 const pixiApp = pixiApps.current[i];
                 const sketchBook = sketchBooksArr[i];
 
+                if (sketchBook.Sketches.length === 0) continue;
 
-                pixiApp.setArr(sketchBook?.Sketches[0].points);
+                pixiApp.setArr(sketchBook.Sketches[0].points);
                 if (pixiDOMRefs[i].current?.children.length === 0)
                     pixiDOMRefs[i].current?.appendChild(pixiApp.getDOM());
+
                 pixiApp.start();
             }
         }
@@ -106,6 +107,7 @@ const CanvasGrid = ({ sketchType }) => {
                 pixiApp.setArr(sketch.points);
                 if (pixiDOMRefs[i].current?.children.length === 0)
                     pixiDOMRefs[i].current?.appendChild(pixiApp.getDOM());
+
                 pixiApp.start();
             }
         }
@@ -118,22 +120,25 @@ const CanvasGrid = ({ sketchType }) => {
 
     useEffect(() => {
         if (!pix) return;
-        //console.log(pixiApps.current)
 
         const step = time => {
             const newPix = [];
             for (let i = 0; i < pixiApps.current.length; i++) {
-                let el = pixiApps.current[i];
-                el.sketchRAF();
-                if (el.doDraw === false) {
-                    let imageSrc = el.image;
-                    pixiDOMRefs[i].current?.removeChild(pixiDOMRefs[i].current.children[0]);
-                    let img = document.createElement('img');
-                    img.src = imageSrc;
-                    pixiDOMRefs[i].current?.appendChild(img)
+                const pixiApp = pixiApps.current[i];
+
+                pixiApp.sketchRAF();
+
+                if (pixiApp.doDraw === false) {
+                    const imageSrc = pixiApp.getImage();
+                    if (imageSrc !== null) {
+                        const imgEle = document.createElement('img');
+                        imgEle.src = imageSrc;
+                        pixiDOMRefs[i].current?.removeChild(pixiDOMRefs[i].current.children[0]);
+                        pixiDOMRefs[i].current?.appendChild(imgEle)
+                    }
                 }
                 else {
-                    newPix.push(el);
+                    newPix.push(pixiApp);
                 }
             }
 
@@ -155,10 +160,6 @@ const CanvasGrid = ({ sketchType }) => {
         //console.log('useEffect')
     }, [])
 
-    const showModal = (val) => {
-        dispatch(showSketchModal(val));
-    }
-
     return (
         <>
             <h4>CanvasGrid</h4>
@@ -172,7 +173,8 @@ const CanvasGrid = ({ sketchType }) => {
             {sketchType === 'sketch' && sketchArr?.map((sketch, i) => (
                 <div ref={pixiDOMRefs[i]} key={`sketchId-${sketch.id}`} onClick={e => {
                     dispatch(setSketchBookId(sketchBookId));
-                    showModal(true);
+                    dispatch(setParentId(sketch.id));
+                    dispatch(showSketchModal(true));
                 }} />
             ))}
         </>

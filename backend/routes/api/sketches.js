@@ -19,10 +19,10 @@ router.get('/:id', asyncHandler(async function(req, res) {
 
 // POST a new sketch
 router.post('/', asyncHandler(async function(req, res) {
-    let { userId, sketchBookId, points, nsfw } = req.body;
+    let { userId, sketchBookId, parentId, points, nsfw } = req.body;
     // Create a new sketch book if not passed a sketchbookId
     if (!sketchBookId) sketchBookId = await SketchBook.createNewSketchBook();
-    const sketch = await Sketch.createNewSketch({ userId, sketchBookId, points, nsfw });
+    const sketch = await Sketch.createNewSketch({ userId, sketchBookId, parentId, points, nsfw });
     return res.json(sketch);
 }));
 

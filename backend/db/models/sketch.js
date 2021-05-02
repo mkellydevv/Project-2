@@ -28,6 +28,9 @@ module.exports = (sequelize, DataTypes) => {
         sketchBookId: {
             allowNull: false,
             type: DataTypes.INTEGER
+        },
+        parentId: {
+            type: DataTypes.INTEGER
         }
     }, {});
     Sketch.associate = function (models) {
@@ -37,6 +40,12 @@ module.exports = (sequelize, DataTypes) => {
         Sketch.belongsTo(models.SketchBook, {
             foreignKey: 'sketchBookId'
         });
+        Sketch.belongsTo(models.Sketch, {
+            foreignKey: 'parentId'
+        });
+        Sketch.hasMany(models.JoinSketchTag, {
+            foreignKey: 'sketchId'
+        });
     };
     Sketch.getAllSketches = async function () {
         return await Sketch.findAll();
@@ -44,10 +53,11 @@ module.exports = (sequelize, DataTypes) => {
     Sketch.getSketchById = async function (id) {
         return await Sketch.findByPk(id);
     }
-    Sketch.createNewSketch = async function ({ userId, sketchBookId, points, flagged, nsfw }) {
+    Sketch.createNewSketch = async function ({ userId, sketchBookId, parentId, points, nsfw }) {
         const sketch = await Sketch.create({
             userId,
             sketchBookId,
+            parentId,
             points,
             flagged: 0,
             nsfw,
