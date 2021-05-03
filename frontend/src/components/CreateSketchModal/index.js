@@ -15,7 +15,6 @@ function CreateSketchModal() {
 
     return (
         <>
-            <button onClick={() => showModal(true)}>New Sketch!</button>
             {modalState && (
                 <Modal onClose={() => showModal(false)}>
                     <PixiCanvas />

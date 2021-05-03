@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { csrfFetch } from '../../store/csrf';
 import { getCovers, getSketches } from '../../store/sketchBooks';
@@ -57,6 +57,8 @@ export class PixiApp {
 
         this.w = 800;
         this.h = 600;
+        //this.backgroundColor = 0xE1E3DD;
+        this.backgroundColor = 0xFFFFFF;
         this.lastPos = null;
         this.currPos = null;
         this.line = null;
@@ -80,7 +82,7 @@ export class PixiApp {
         this.app = new PIXI.Application({
             width: this.w,
             height: this.h,
-            backgroundColor: 0xE1E3DD,
+            backgroundColor: this.backgroundColor,
             autoStart: true,
             forceCanvas: true,
             preserveDrawingBuffer: true
@@ -115,7 +117,16 @@ export class PixiApp {
         this.savedArr = this.arr;
     }
 
-    async testFetch(id = 13) {
+    clearStage() {
+        this.app.stage.removeChildren();
+        this.i = this.j = 0;
+        this.line = null;
+        this.doDraw = false;
+        this.arr = [];
+        this.savedArr = [];
+    }
+
+    async testFetch(id = 1) {
         const res = await fetch(`/api/sketches/${id}`, {
             method: 'GET',
             headers: {
@@ -123,7 +134,7 @@ export class PixiApp {
             }
         })
         let data = await res.json();
-        console.log(data.points);
+        //console.log(data.points);
         this.arr = unflattenArr(data.points);
     }
 
@@ -133,7 +144,15 @@ export class PixiApp {
         this.app.stage.removeChildAt(this.app.stage.children.length - 1);
     }
 
+    checkValidSketch() {
+        if (!this.arr.length || this.arr[0].length < 2)
+            return false;
+
+        return true;
+    }
     async createNewSketch() {
+        if (!this.checkValidSketch())
+            return;
         this.savedArr = this.arr.map(subArr => subArr.map(tuple => [...tuple]));
         const res = await csrfFetch(`/api/sketches`, {
             method: 'POST',
@@ -149,7 +168,7 @@ export class PixiApp {
             }
         });
         let data = await res.json();
-        console.log(data);
+        //console.log(data);
         return data;
     }
 
@@ -163,7 +182,6 @@ export class PixiApp {
                 'Content-Type': 'application/json'
             }
         });
-        let data = await res.json();
     }
 
     step() {
@@ -199,6 +217,7 @@ export class PixiApp {
             this.renderImage();
             return;
         }
+        if (!this.user) return;
         this.lastPos = [e.offsetX, e.offsetY];
         this.currPos = [...this.lastPos];
         this.mouseDown = true;
@@ -224,6 +243,10 @@ export class PixiApp {
     };
 
     sketchRAF() {
+        if (!this.savedArr.length) {
+            this.doDraw = false;
+            return;
+        }
         if (this.doDraw) {
             if (this.line === null) {
                 this.line = new PIXI.Graphics();
@@ -307,8 +330,9 @@ export class PixiApp {
 
 const PixiCanvas = () => {
     const user = useSelector(state => state.session.user);
+    const [editActive, setEditActive] = useState(true);
     const { sketchBookId, sketchData } = useSelector(state => state.sketchModal);
-    const { sketchBooksObj: sketchBooks, currSketchType } = useSelector(state => state.sketchBooks);
+    const { sketchBooksObj: sketchBooks } = useSelector(state => state.sketchBooks);
     const sketches = useRef([]);
     const sketchIndex = useRef(null);
 
@@ -339,7 +363,7 @@ const PixiCanvas = () => {
     useEffect(() => {
         if (!sketchData || !pixiApp) return;
         sketchIndex.current = sketches.current.findIndex(sketch => sketch.id === sketchData.id);
-        console.log(`sketchData`, sketchData, 'sketchIndex.current', sketchIndex.current);
+        //console.log(`sketchData`, sketchData, 'sketchIndex.current', sketchIndex.current);
         pixiApp.current.setParentId(sketchData.id);
         pixiApp.current.setArr(sketchData.points);
         pixiApp.current.startSketchDraw();
@@ -353,7 +377,7 @@ const PixiCanvas = () => {
     const prevSketch = () => {
         if (!sketchIndex.current) return;
         sketchIndex.current -= 1;
-        console.log(`prev sketch`, sketches, sketchIndex, sketches.current[sketchIndex.current])
+        //console.log(`prev sketch`, sketches, sketchIndex, sketches.current[sketchIndex.current])
         dispatch(setSketchData(sketches.current[sketchIndex.current]));
     }
 
@@ -362,7 +386,7 @@ const PixiCanvas = () => {
         if (sketchIndex.current >= sketches.current.length - 1) return;
 
         sketchIndex.current += 1;
-        console.log(`next sketch`, sketches, sketchIndex, sketches.current[sketchIndex.current])
+        //console.log(`next sketch`, sketches, sketchIndex, sketches.current[sketchIndex.current])
         dispatch(setSketchData(sketches.current[sketchIndex.current]));
     }
 
@@ -378,35 +402,57 @@ const PixiCanvas = () => {
         <div id='pixiCanvas'>
 
             <div className='sketch' ref={pixiDOM} />
-            {sketchData && (<div id='sketchInfo'>
-                <div>Artist: {sketchData.User.username} </div>
-                <div>Sketch ID: {sketchData.id}</div>
-                {sketchData.parentId ?
-                    <div className='clickableText' onClick={e => goToSketch(sketchData.parentId)}>Reference ID: {sketchData.parentId}</div> :
-                    <div>&nbsp;</div>}
+            <div id='sketchSideBar'>
+                {sketchData && (<div id='sketchInfo'>
+                    <div>Artist: {sketchData.User.username} </div>
+                    <div>Sketch ID: {sketchData.id}</div>
+                    {sketchData.parentId ?
+                        <div className='clickableText' onClick={e => goToSketch(sketchData.parentId)}>Reference ID: {sketchData.parentId}</div> :
+                        <div>&nbsp;</div>}
 
-                <button onClick={e => prevSketch()}>Prev</button>
-                <button onClick={e => nextSketch()}>Next</button>
-                <button onClick={e => pixiApp.current.undo()}>Undo</button>
-                <button onClick={e => pixiApp.current.testFetch()}>Test Fetch</button>
-                <button onClick={e => pixiApp.current.startSketchDraw()}>Draw Test</button>
-                <button onClick={async e => {
-                    dispatch(showSketchModal(false));
-                    dispatch(setSketchData(null));
-                    await pixiApp.current.createNewSketch();
-                    if (sketchBookId) {
-                        dispatch(getSketches(sketchBookId));
-                        console.log('dispatch get sketches')
-                    }
-                    else
-                        dispatch(getCovers());
-                }}> Submit </button>
-            </div>)}
+                    <button onClick={e => prevSketch()}>Prev</button>
+                    <button onClick={e => nextSketch()}>Next</button>
+                    <button onClick={e => pixiApp.current.startSketchDraw()}>Redraw</button>
+
+                    {/*<button onClick={e => {
+                        pixiApp.current.renderImage();
+                        if (!pixiApp.current.image)
+                            return;
+                        const a = document.createElement("a");
+
+                        a.href = URL.createObjectURL(pixiApp.current.image);
+                        a.target = '_blank';
+                        a.download = 'image.png';
+                        a.click();
+                    }}>Download</button>*/}
+                </div>)}
+
+                {user && editActive && <div id='sketchEdit'>
+                    <button onClick={e => pixiApp.current.clearStage()}>Clear</button>
+                    <button onClick={e => {
+                        pixiApp.current.setArr(sketchData.points);
+                        pixiApp.current.renderImage();
+                    }}>Reset</button>
+                    <button onClick={e => pixiApp.current.undo()}>Undo</button>
+                    <button onClick={async e => {
+                        if (!pixiApp.current.checkValidSketch())
+                            return;
+                        dispatch(showSketchModal(false));
+                        dispatch(setSketchData(null));
+                        await pixiApp.current.createNewSketch();
+                        if (sketchBookId) {
+                            dispatch(getSketches(sketchBookId));
+                        }
+                        else
+                            dispatch(getCovers());
+                    }}> Submit </button>
+                </div>}
+            </div>
 
             <div className='btn' onClick={e => {
                 dispatch(showSketchModal(false));
                 dispatch(setSketchData(null));
-            }}><i className="fas fa-times"></i></div>
+            }}><i className="fas fa-times fa-lg"></i></div>
         </div>
     );
 }

@@ -4,10 +4,9 @@ import { Route, Switch } from "react-router-dom";
 import SignupFormPage from "./components/SignupFormPage";
 import * as sessionActions from "./store/session";
 import Navigation from "./components/Navigation";
+import Footer from './components/Footer';
 
-//import PixiCanvas from './components/PixiCanvas';
 import CanvasGrid from "./components/CanvasGrid";
-//import CanvasFeed from "./components/CanvasFeed";
 
 function App() {
     const dispatch = useDispatch();
@@ -27,15 +26,14 @@ function App() {
                         <SignupFormPage />
                     </Route>
                     <Route exact path='/' >
-                        Front Page
                         <CanvasGrid sketchType={'cover'}/>
                     </Route>
                     <Route path='/sketchbook/:id' key={`/sketchbook/:id`}>
-                        SketchBook
                         <CanvasGrid sketchType={'sketch'}/>
                     </Route>
                 </Switch>
             )}
+            <Footer />
         </>
     );
 }
