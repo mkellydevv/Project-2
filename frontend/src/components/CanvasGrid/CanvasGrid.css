@@ -1,11 +1,13 @@
-div {
+#canvasGrid {
+
+}
+
+.sketchMini {
     display: inline-block;
-}
-
-canvas {
-    padding: 1rem;
-}
-
-img {
-    padding: 1rem;
+    border: black 1px solid;
+    border-radius: 1rem;
+    margin: 1rem;
+    overflow: hidden;
+    user-select: none;
+    cursor: pointer;
 }

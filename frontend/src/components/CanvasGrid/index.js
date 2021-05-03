@@ -22,13 +22,16 @@ const CanvasGrid = ({ sketchType }) => {
     let sketchBooksArr = [];
     let sketchArr = [];
 
+    console.log(`sketchBooks`, sketchBooks)
     if (sketchType === 'cover') {
         sketchBooksArr = sketchBooks ? Object.values(sketchBooks).reverse() : [];
+
         for (let i in sketchBooksArr)
             pixiDOMRefs[i] = createRef();
     }
     else if (sketchType === 'sketch') {
-        sketchArr = sketchBooks ? Object.values(sketchBooks)[0]?.Sketches : [];
+        sketchArr = sketchBooks ? Object.values(sketchBooks) : [];
+
         for (let i in sketchArr)
             pixiDOMRefs[i] = createRef();
     }
@@ -63,6 +66,8 @@ const CanvasGrid = ({ sketchType }) => {
         if (currSketchType !== sketchType) return;
         if (!sketchBooks || Object.keys(sketchBooks).length === 0) return;
 
+        console.log(`sketchBooks sketchType`, sketchBooks, sketchType)
+
         if (sketchType === 'cover') {
             const len = sketchBooksArr.length;
             const newArr = new Array(len);
@@ -91,10 +96,8 @@ const CanvasGrid = ({ sketchType }) => {
             const len = sketchArr.length;
             const newArr = new Array(len);
 
-            console.log(`sketchBooks`, Object.values(sketchBooks)[0].id)
-
             for (let i = 0; i < len; i++) {
-                newArr[i] = new PixiApp(false, Object.values(sketchBooks)[0].id);
+                newArr[i] = new PixiApp(false, sketchArr[i].parentId);
             };
             pixiApps.current = newArr;
             setPix(newArr);
@@ -133,6 +136,7 @@ const CanvasGrid = ({ sketchType }) => {
                     if (imageSrc !== null) {
                         const imgEle = document.createElement('img');
                         imgEle.src = imageSrc;
+                        imgEle.draggable = false;
                         pixiDOMRefs[i].current?.removeChild(pixiDOMRefs[i].current.children[0]);
                         pixiDOMRefs[i].current?.appendChild(imgEle);
                     }
@@ -162,21 +166,23 @@ const CanvasGrid = ({ sketchType }) => {
 
     return (
         <>
-            <h4>CanvasGrid</h4>
             <button onClick={e => getSketchBookData()}>Refresh</button>
-            {sketchType === 'cover' && sketchBooksArr?.map((sketchBook, i) => (
-                <div ref={pixiDOMRefs[i]} key={`sketchBookId-${sketchBook.id}`} onClick={e => {
-                    dispatch(setSketchBookId(sketchBook.id));
-                    history.push(`/sketchbook/${sketchBook.id}`)
-                }} />
-            ))}
-            {sketchType === 'sketch' && sketchArr?.map((sketch, i) => (
-                <div ref={pixiDOMRefs[i]} key={`sketchId-${sketch.id}`} onClick={e => {
-                    dispatch(setSketchBookId(sketchBookId));
-                    dispatch(setSketchData(sketch));
-                    dispatch(showSketchModal(true));
-                }} />
-            ))}
+            <h4>CanvasGrid</h4>
+            <div className='pixiGrid'>
+                {sketchType === 'cover' && sketchBooksArr?.map((sketchBook, i) => (
+                    <div className='sketchMini' ref={pixiDOMRefs[i]} key={`sketchBookId-${sketchBook.id}`} onClick={e => {
+                        dispatch(setSketchBookId(sketchBook.id));
+                        history.push(`/sketchbook/${sketchBook.id}`)
+                    }} />
+                ))}
+                {sketchType === 'sketch' && sketchArr?.map((sketch, i) => (
+                    <div className='sketchMini' ref={pixiDOMRefs[i]} key={`sketchId-${sketch.id}`} onClick={e => {
+                        dispatch(setSketchBookId(sketchBookId));
+                        dispatch(setSketchData(sketch));
+                        dispatch(showSketchModal(true));
+                    }} />
+                ))}
+            </div>
         </>
     )
 }

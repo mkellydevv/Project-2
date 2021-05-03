@@ -1,0 +1,42 @@
+#pixiCanvas {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-flow: row wrap;
+    box-sizing: border-box;
+}
+
+#pixiCanvas > * {
+    margin: 1rem;
+}
+
+.sketch {
+    display: inline-block;
+    border: black 1px solid;
+    border-radius: 1rem;
+    margin: 1rem;
+    overflow: hidden;
+}
+
+#sketchInfo {
+    width: 200px;
+    height: 600px;
+    display: flex;
+    flex-flow: column wrap;
+}
+
+.btn {
+    color: black;
+    margin: 1rem;
+    padding: 2px;
+    cursor: pointer;
+    height: 12px;
+}
+
+.clickableText {
+    cursor: pointer;
+}
+
+.clickableText:hover {
+    font-weight:bold;
+}

@@ -5,7 +5,7 @@ import { getCovers, getSketches } from '../../store/sketchBooks';
 import { showSketchModal, setSketchData } from '../../store/sketchModal';
 import * as PIXI from "pixi.js-legacy";
 
-const PADDING_OFFSET = 16;
+import './PixiCanvas.css';
 
 // Helper Functions
 
@@ -128,6 +128,7 @@ export class PixiApp {
     }
 
     undo() {
+        if (!this.app.stage.children.length) return;
         this.arr.pop();
         this.app.stage.removeChildAt(this.app.stage.children.length - 1);
     }
@@ -198,7 +199,7 @@ export class PixiApp {
             this.renderImage();
             return;
         }
-        this.lastPos = [e.offsetX - PADDING_OFFSET, e.offsetY - PADDING_OFFSET];
+        this.lastPos = [e.offsetX, e.offsetY];
         this.currPos = [...this.lastPos];
         this.mouseDown = true;
         this.line = new PIXI.Graphics();
@@ -210,7 +211,7 @@ export class PixiApp {
     mouseMoveHandler(e) {
         if (!this.mouseDown) return;
 
-        this.currPos = [e.offsetX - PADDING_OFFSET, e.offsetY - PADDING_OFFSET];
+        this.currPos = [e.offsetX, e.offsetY];
     };
     mouseUpHandler(e) {
         if (!this.mouseDown) return
@@ -324,14 +325,14 @@ const PixiCanvas = () => {
 
     useEffect(() => {
         if (!sketchBooks) return;
-
-        sketches.current = Object.values(sketchBooks)[0].Sketches;
+        //console.log(`Object.values(sketchBooks)[0].Sketches`, Object.values(sketchBooks)[0].Sketches)
+        sketches.current = Object.values(sketchBooks);
     }, [sketchBooks]);
 
 
     useEffect(() => {
         if (!sketchBookId || !pixiApp) return;
-        console.log(`sketchBookId`, sketchBookId)
+        //console.log(`sketchBookId`, sketchBookId)
         pixiApp.current.setSketchBookId(sketchBookId);
     }, [sketchBookId]);
 
@@ -350,43 +351,63 @@ const PixiCanvas = () => {
     }, [user]);
 
     const prevSketch = () => {
-        if (sketchIndex.current === 0) return;
+        if (!sketchIndex.current) return;
         sketchIndex.current -= 1;
         console.log(`prev sketch`, sketches, sketchIndex, sketches.current[sketchIndex.current])
         dispatch(setSketchData(sketches.current[sketchIndex.current]));
     }
 
     const nextSketch = () => {
+        if (sketchIndex.current === null) return;
         if (sketchIndex.current >= sketches.current.length - 1) return;
+
         sketchIndex.current += 1;
         console.log(`next sketch`, sketches, sketchIndex, sketches.current[sketchIndex.current])
         dispatch(setSketchData(sketches.current[sketchIndex.current]));
     }
 
+    const goToSketch = (parentId) => {
+        const newIndex = sketches.current.findIndex(sketch => sketch.id === parentId);
+        if (newIndex > -1) {
+            sketchIndex.current = newIndex;
+            dispatch(setSketchData(sketches.current[sketchIndex.current]));
+        }
+    }
+
     return (
-        <>
-            <div ref={pixiDOM} />
-            <button onClick={e => {
+        <div id='pixiCanvas'>
+
+            <div className='sketch' ref={pixiDOM} />
+            {sketchData && (<div id='sketchInfo'>
+                <div>Artist: {sketchData.User.username} </div>
+                <div>Sketch ID: {sketchData.id}</div>
+                {sketchData.parentId ?
+                    <div className='clickableText' onClick={e => goToSketch(sketchData.parentId)}>Reference ID: {sketchData.parentId}</div> :
+                    <div>&nbsp;</div>}
+
+                <button onClick={e => prevSketch()}>Prev</button>
+                <button onClick={e => nextSketch()}>Next</button>
+                <button onClick={e => pixiApp.current.undo()}>Undo</button>
+                <button onClick={e => pixiApp.current.testFetch()}>Test Fetch</button>
+                <button onClick={e => pixiApp.current.startSketchDraw()}>Draw Test</button>
+                <button onClick={async e => {
+                    dispatch(showSketchModal(false));
+                    dispatch(setSketchData(null));
+                    await pixiApp.current.createNewSketch();
+                    if (sketchBookId) {
+                        dispatch(getSketches(sketchBookId));
+                        console.log('dispatch get sketches')
+                    }
+                    else
+                        dispatch(getCovers());
+                }}> Submit </button>
+            </div>)}
+
+            <div className='btn' onClick={e => {
                 dispatch(showSketchModal(false));
                 dispatch(setSketchData(null));
-            }}>Close</button>
-            <button onClick={e => prevSketch()}>Prev</button>
-            <button onClick={e => nextSketch()}>Next</button>
-            <button onClick={e => pixiApp.current.undo()}>Undo</button>
-            <button onClick={e => pixiApp.current.testFetch()}>Test Fetch</button>
-            <button onClick={e => pixiApp.current.startSketchDraw()}>Draw Test</button>
-            <button onClick={async e => {
-                dispatch(showSketchModal(false));
-                dispatch(setSketchData(null));
-                await pixiApp.current.createNewSketch();
-                if (sketchBookId) {
-                    dispatch(getSketches(sketchBookId));
-                    console.log('dispatch get sketches')
-                }
-                else
-                    dispatch(getCovers());
-            }}> Submit </button>
-        </>
+            }}><i className="fas fa-times"></i></div>
+        </div>
     );
 }
 

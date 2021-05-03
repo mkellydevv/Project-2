@@ -16,10 +16,9 @@ module.exports = (sequelize, DataTypes) => {
             include: {
                 model: sequelize.models.Sketch,
                 limit: 1,
-                attributes: ['points']
-            }
+                attributes: ['points'],
+            },
         });
-        sketchBooks['sketchType'] = 'cover';
         return { sketchBooks, sketchType: 'cover'};
     };
     SketchBook.getSketchBookSketches = async function (sketchBookId) {
@@ -28,8 +27,12 @@ module.exports = (sequelize, DataTypes) => {
                 model: sequelize.models.Sketch,
                 where: {
                     sketchBookId: Number(sketchBookId)
-                }
-            }
+                },
+                include: {
+                    model: sequelize.models.User,
+                    attributes: ['username']
+                },
+            },
         })
         return { sketches, sketchType: 'sketch'};
     }

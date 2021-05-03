@@ -41,9 +41,10 @@ const sketchBookReducer = (state = initialState, action) => {
         }
         case LOAD_SKETCHES: {
             const sketchBooksObj = {};
-            action.data.sketches.forEach(sketchBook => {
+            action.data.sketches[0].Sketches.forEach(sketchBook => {
                 sketchBooksObj[sketchBook.id] = sketchBook;
             })
+            //console.log(`sketchBooksObj`, action.data, sketchBooksObj )
 
             return { sketchBooksObj, currSketchType: action.data.sketchType};
         }
