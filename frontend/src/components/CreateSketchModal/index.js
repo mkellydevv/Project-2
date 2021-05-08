@@ -8,8 +8,8 @@ function CreateSketchModal() {
     const { modalState } = useSelector(state => state.sketchModal);
     const dispatch = useDispatch();
 
-    const showModal = (val) => {
-        dispatch(showSketchModal(val));
+    const showModal = () => {
+        dispatch(showSketchModal(false));
         dispatch(setSketchData(null));
     }
 

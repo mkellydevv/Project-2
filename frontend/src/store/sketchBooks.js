@@ -36,16 +36,14 @@ const sketchBookReducer = (state = initialState, action) => {
             const sketchBooksObj = {};
             action.data.sketchBooks.forEach(sketchBook => {
                 sketchBooksObj[sketchBook.id] = sketchBook;
-            })
+            });
             return { sketchBooksObj, currSketchType: action.data.sketchType};
         }
         case LOAD_SKETCHES: {
             const sketchBooksObj = {};
             action.data.sketches[0].Sketches.forEach(sketchBook => {
                 sketchBooksObj[sketchBook.id] = sketchBook;
-            })
-            //console.log(`sketchBooksObj`, action.data, sketchBooksObj )
-
+            });
             return { sketchBooksObj, currSketchType: action.data.sketchType};
         }
         default:

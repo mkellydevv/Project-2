@@ -46,6 +46,9 @@ export class PixiApp {
         this.sketchBookId = sketchBookId;
         this.parentId = parentId;
 
+        PixiApp.instances++;
+        console.log('pixi app', PixiApp.instances)
+
         if (this.interactive) {
             this.scale = 1;
             this.lineWidth = 3;
@@ -209,6 +212,7 @@ export class PixiApp {
             }
         }
 
+        // console.log(`still running`, this.parentId)
         this.raf = window.requestAnimationFrame(() => this.step());
     }
 
@@ -326,58 +330,74 @@ export class PixiApp {
     setArr(points) {
         if (points) this.arr = unflattenArr(points);
     }
+
+    destroy() {
+        if (this.raf) cancelAnimationFrame(this.raf);
+        this.raf = null;
+        this.clearStage();
+        this.app.destroy(true, true);
+        PixiApp.instances--;
+
+        console.log('destroying', this);
+    }
 }
 
-const PixiCanvas = () => {
-    const user = useSelector(state => state.session.user);
-    const [editActive, setEditActive] = useState(true);
-    const { sketchBookId, sketchData } = useSelector(state => state.sketchModal);
-    const { sketchBooksObj: sketchBooks } = useSelector(state => state.sketchBooks);
-    const sketches = useRef([]);
-    const sketchIndex = useRef(null);
+PixiApp.instances = 0;
 
-    const pixiApp = useRef(new PixiApp(true, sketchBookId));
-    const pixiDOM = useRef(null);
+
+const PixiCanvas = () => {
+    const [editActive, setEditActive] = useState(true);
+
+    const { user } = useSelector(state => state.session);
+    const { sketchBookId, sketchData, modalState } = useSelector(state => state.sketchModal);
+    const { sketchBooksObj: sketchBooks } = useSelector(state => state.sketchBooks);
+
     const dispatch = useDispatch();
 
-    useEffect(() => {
-        if (!pixiApp || !pixiDOM) return;
+    const sketches = useRef([]);
+    const sketchIndex = useRef(null);
+    const pixiApp = useRef();
+    const pixiDOM = useRef(null);
 
-        pixiDOM.current.appendChild(pixiApp.current.getDOM());
-        pixiApp.current.start();
-    }, []);
 
     useEffect(() => {
-        if (!sketchBooks) return;
-        //console.log(`Object.values(sketchBooks)[0].Sketches`, Object.values(sketchBooks)[0].Sketches)
+        return (() => {
+            if (pixiApp.current && modalState === true) {
+                pixiApp.current.destroy();
+                pixiApp.current = null;
+            }
+        })
+    }, [])
+
+    useEffect(() => {
         sketches.current = Object.values(sketchBooks);
     }, [sketchBooks]);
 
-
     useEffect(() => {
-        if (!sketchBookId || !pixiApp) return;
-        //console.log(`sketchBookId`, sketchBookId)
-        pixiApp.current.setSketchBookId(sketchBookId);
+        if (sketchBookId !== null)
+            pixiApp.current = new PixiApp(true, sketchBookId);
+        else
+            pixiApp.current = new PixiApp(true);
+        pixiDOM.current.appendChild(pixiApp.current.getDOM());
+        pixiApp.current.start();
     }, [sketchBookId]);
 
     useEffect(() => {
         if (!sketchData || !pixiApp) return;
         sketchIndex.current = sketches.current.findIndex(sketch => sketch.id === sketchData.id);
-        //console.log(`sketchData`, sketchData, 'sketchIndex.current', sketchIndex.current);
         pixiApp.current.setParentId(sketchData.id);
         pixiApp.current.setArr(sketchData.points);
         pixiApp.current.startSketchDraw();
     }, [sketchData]);
 
     useEffect(() => {
-        if (!user || !pixiApp) return;
+        if (!pixiApp) return;
         pixiApp.current.setUser(user);
     }, [user]);
 
     const prevSketch = () => {
         if (!sketchIndex.current) return;
         sketchIndex.current -= 1;
-        //console.log(`prev sketch`, sketches, sketchIndex, sketches.current[sketchIndex.current])
         dispatch(setSketchData(sketches.current[sketchIndex.current]));
     }
 
@@ -386,7 +406,6 @@ const PixiCanvas = () => {
         if (sketchIndex.current >= sketches.current.length - 1) return;
 
         sketchIndex.current += 1;
-        //console.log(`next sketch`, sketches, sketchIndex, sketches.current[sketchIndex.current])
         dispatch(setSketchData(sketches.current[sketchIndex.current]));
     }
 

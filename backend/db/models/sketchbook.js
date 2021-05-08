@@ -33,7 +33,7 @@ module.exports = (sequelize, DataTypes) => {
                     attributes: ['username']
                 },
             },
-        })
+        });
         return { sketches, sketchType: 'sketch'};
     }
     return SketchBook;

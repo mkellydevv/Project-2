@@ -8,7 +8,7 @@ import { showSketchModal, setSketchBookId, setSketchData } from '../../store/ske
 import './CanvasGrid.css';
 
 const CanvasGrid = ({ sketchType }) => {
-    const refreshTime = 60; // In seconds
+    const refreshTime = 10; // In seconds
     const { id: sketchBookId } = useParams();
     const dispatch = useDispatch();
     const history = useHistory();
@@ -41,11 +41,9 @@ const CanvasGrid = ({ sketchType }) => {
     const getSketchBookData = () => {
         if (sketchType === 'cover') {
             dispatch(getCovers());
-            //console.log('dispatch get covers')
         }
         else if (sketchType === 'sketch' && sketchBookId) {
             dispatch(getSketches(sketchBookId));
-            //console.log('dispatch get Sketches')
         }
         else
             console.log('Invalid CanvasGrid props, params, or queries');
@@ -55,7 +53,17 @@ const CanvasGrid = ({ sketchType }) => {
         let interval = setInterval(() => {
             getSketchBookData();
         }, 1000 * refreshTime);
-        return () => { clearInterval(interval) };
+
+        return () => {
+            clearInterval(interval);
+
+            if (pixiApps.current) {
+                for (let i = 0; i < pixiApps.current.length; i++) {
+                    pixiApps.current[i].destroy();
+                    pixiApps.current[i] = null;
+                }
+            }
+        };
     }, [])
 
     useEffect(() => {
@@ -158,11 +166,7 @@ const CanvasGrid = ({ sketchType }) => {
 
         requestRef.current = requestAnimationFrame(step);
         return () => cancelAnimationFrame(requestRef.current);
-    }, [pix])
-
-    useEffect(() => {
-        //console.log('useEffect')
-    }, [])
+    }, [pix]);
 
     return (
         <div className='pixiGrid'>
