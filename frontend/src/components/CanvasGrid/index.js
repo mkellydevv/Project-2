@@ -8,7 +8,7 @@ import { showSketchModal, setSketchBookId, setSketchData } from '../../store/ske
 import './CanvasGrid.css';
 
 const CanvasGrid = ({ sketchType }) => {
-    const refreshTime = 10; // In seconds
+    const refreshTime = 5; // In seconds
     const { id: sketchBookId } = useParams();
     const dispatch = useDispatch();
     const history = useHistory();
@@ -16,9 +16,10 @@ const CanvasGrid = ({ sketchType }) => {
     const [pix, setPix] = useState([]);
     const pixiApps = useRef(pix);
     const animCount = useRef(0);
+    const newestId = useRef(null);
     const pixiDOMRefs = [];
 
-    const { sketchBooksObj: sketchBooks, currSketchType } = useSelector(state => state.sketchBooks);
+    const { sketchBooksObj: sketchBooks, currSketchType, newSketchBookCount } = useSelector(state => state.sketchBooks);
     let sketchBooksArr = [];
     let sketchArr = [];
 
@@ -51,7 +52,8 @@ const CanvasGrid = ({ sketchType }) => {
 
     useEffect(() => {
         let interval = setInterval(() => {
-            getSketchBookData();
+            //getSketchBookData();
+            dispatch(getCovers(newestId.current))
         }, 1000 * refreshTime);
 
         return () => {
@@ -74,9 +76,37 @@ const CanvasGrid = ({ sketchType }) => {
         if (currSketchType !== sketchType) return;
         if (!sketchBooks || Object.keys(sketchBooks).length === 0) return;
 
+        console.log('sketch books has changed ----------------------------')
+
         //console.log(`sketchBooks sketchType`, sketchBooks, sketchType)
 
         if (sketchType === 'cover') {
+            console.log('sketchBooksArr', sketchBooksArr)
+            if (newSketchBookCount) {
+                for (let i = 0; i < newSketchBookCount; i++) {
+                    pixiApps.current.unshift(new PixiApp(false));
+                }
+                console.log('pixiApps.current',pixiApps.current)
+                setPix(pixiApps.current)
+                animCount.current = newSketchBookCount;
+                newestId.current = sketchBooksArr[0].id;
+
+                for (let i = 0; i < newSketchBookCount; i++) {
+                    const pixiApp = pixiApps.current[i];
+                    const sketchBook = sketchBooksArr[i];
+
+                    if (sketchBook.Sketches.length === 0) continue;
+
+                    pixiApp.setArr(sketchBook.Sketches[0].points);
+                    if (pixiDOMRefs[i].current?.children.length === 0)
+                        pixiDOMRefs[i].current?.appendChild(pixiApp.getDOM());
+
+                    pixiApp.start();
+                }
+
+                return;
+            }
+
             const len = sketchBooksArr.length;
             const newArr = new Array(len);
 
@@ -86,6 +116,7 @@ const CanvasGrid = ({ sketchType }) => {
             pixiApps.current = newArr;
             setPix(newArr);
             animCount.current = len;
+            newestId.current = sketchBooksArr[0].id;
 
             for (let i = 0; i < len; i++) {
                 const pixiApp = pixiApps.current[i];
@@ -94,9 +125,11 @@ const CanvasGrid = ({ sketchType }) => {
                 if (sketchBook.Sketches.length === 0) continue;
 
                 pixiApp.setArr(sketchBook.Sketches[0].points);
-                if (pixiDOMRefs[i].current?.children.length === 0)
+                if (pixiDOMRefs[i].current?.children.length === 0) {
                     pixiDOMRefs[i].current?.appendChild(pixiApp.getDOM());
-
+                    pixiDOMRefs[i].current = pixiApp // STORE THESE TWO TOGETHER?
+                    console.log(`pixiDOMRefs[i]`, pixiDOMRefs[i])
+                }
                 pixiApp.start();
             }
         }
@@ -165,7 +198,10 @@ const CanvasGrid = ({ sketchType }) => {
         }
 
         requestRef.current = requestAnimationFrame(step);
-        return () => cancelAnimationFrame(requestRef.current);
+        return () => {
+            console.log('Finished animating')
+            cancelAnimationFrame(requestRef.current)
+        };
     }, [pix]);
 
     return (

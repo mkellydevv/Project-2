@@ -6,8 +6,14 @@ const { SketchBook } = require('../../db/models');
 const router = express.Router();
 
 // GET sketch book ids and the first sketch of each
-router.get('/', asyncHandler(async (_req, res) => {
-    const sketchBooks = await SketchBook.getSketchBookCovers();
+router.get('/', asyncHandler(async (req, res) => {
+    let sketchBooks;
+    if (req.query.after) {
+        sketchBooks = await SketchBook.getLatestSketchBookCovers(req.query.after);
+    }
+    else {
+        sketchBooks = await SketchBook.getSketchBookCovers();
+    }
     return res.json(sketchBooks);
 }));
 

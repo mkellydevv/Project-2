@@ -1,4 +1,5 @@
 'use strict';
+const { Op } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
     const SketchBook = sequelize.define('SketchBook', {}, {});
@@ -17,9 +18,24 @@ module.exports = (sequelize, DataTypes) => {
                 model: sequelize.models.Sketch,
                 limit: 1,
                 attributes: ['points'],
-            },
+            }
         });
-        return { sketchBooks, sketchType: 'cover'};
+        return { sketchBooks, sketchType: 'cover' };
+    };
+    SketchBook.getLatestSketchBookCovers = async function (newestId) {
+        const sketchBooks = await SketchBook.findAll({
+            where: {
+                id: {
+                    [Op.gt]: Number(newestId)
+                }
+            },
+            include: {
+                model: sequelize.models.Sketch,
+                limit: 1,
+                attributes: ['points'],
+            }
+        });
+        return { sketchBooks, sketchType: 'cover' };
     };
     SketchBook.getSketchBookSketches = async function (sketchBookId) {
         const sketches = await SketchBook.findAll({
@@ -34,7 +50,7 @@ module.exports = (sequelize, DataTypes) => {
                 },
             },
         });
-        return { sketches, sketchType: 'sketch'};
+        return { sketches, sketchType: 'sketch' };
     }
     return SketchBook;
 };
